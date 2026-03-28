@@ -1025,10 +1025,12 @@ window.logout=async function(){
   document.getElementById('doc-view').style.display='none';
 };
 
-// ─── AUTH STATE WATCHER (survives page refresh) ───
+// ─── AUTH STATE WATCHER (survives page refresh, NOT fresh open) ───
 if(!DEMO_MODE){
   onAuthStateChanged(auth, async user=>{
-    if(user && !curRep){
+    // Only auto-launch if splash screen is NOT showing (i.e. this is a page refresh)
+    const splashOn = document.getElementById('sc-splash').classList.contains('on');
+    if(user && !curRep && !splashOn){
       const snap=await getDoc(doc(db,'reps',user.uid));
       if(snap.exists()){const d=snap.data();curRep={uid:user.uid,name:d.name,ini:(d.name.split(' ').map(x=>x[0]).join('').substring(0,2)).toUpperCase(),co:d.co,email:d.email,tel:d.tel,id:d.saId};}
       else{curRep={uid:user.uid,name:'Rep',ini:'R',co:'',email:user.email,tel:'',id:''};}
@@ -1058,9 +1060,11 @@ window.logout    = logout;
 
 // ── ATTACH ALL BUTTON EVENTS DIRECTLY FROM MODULE (most reliable) ──
 (function attachAllEvents(){
+  // Small delay to ensure DOM is ready
+  setTimeout(function(){
   // Hamburger button
   var hmb = document.getElementById('hmb-btn');
-  if(hmb){ hmb.onclick = togDrw; }
+  if(hmb){ hmb.onclick = togDrw; console.log('HMB wired'); }
 
   // Search hint row  
   var srch = document.getElementById('srch-hint');
@@ -1115,6 +1119,7 @@ window.logout    = logout;
   if(rco) rco.onchange = function(){ chkRco(); };
   if(mco) mco.onchange = function(){ chkMco(); };
   if(mr)  mr.onchange  = function(){ chkMr(); };
+  }, 100); // end setTimeout
 })();
 </script>
 
