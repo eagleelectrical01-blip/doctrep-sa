@@ -314,7 +314,7 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
       <div id="auth-login">
         <div class="at">Welcome back</div>
         <div class="as">Sign in to your Rep account</div>
-        <div class="af"><label>Email</label><input id="l-email" type="email" placeholder="rep@company.co.za" value="thabo@aspenpharma.co.za"></div>
+        <div class="af"><label>Email</label><input id="l-email" type="email" placeholder="rep@company.co.za"></div>
         <div class="af"><label>Password</label>
           <div class="pw-wrap">
             <input id="l-pw" type="password" placeholder="••••••••">
@@ -662,9 +662,10 @@ function subscribeRepData(){
     renderMybk();
   });
   // This rep's notifications
-  const nq=query(collection(db,'notifications'),where('repUid','==',curRep.uid),orderBy('createdAt','desc'));
+  const nq=query(collection(db,'notifications'),where('repUid','==',curRep.uid));
   unsubNotifs=onSnapshot(nq,snap=>{
-    NOTIFS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    NOTIFS=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
     updBadges();
     if(document.getElementById('sc-notif').classList.contains('on')) renderNotif();
   });
@@ -814,7 +815,7 @@ function renderSlots(date){
     const isMe=myIds.has(s.id);const doc=docBy(selDid);
     let cls,dc,lbl,clk;
     if(isMe){cls='ms';dc='m';lbl='MY REQUEST';clk='';}
-    else if(s.status==='open'){cls='os';dc='o';lbl='OPEN';clk=`onclick="openMod(${s.id})"`;}
+    else if(s.status==='open'){cls='os';dc='o';lbl='OPEN';clk=`onclick="openMod('${s.id}')"`; }
     else if(s.status==='booked'){cls='bs';dc='b';lbl='BOOKED';clk='';}
     else{cls='ps';dc='p';lbl='PENDING';clk='';}
     return`<div class="slc ${cls}" ${clk}>
@@ -831,7 +832,7 @@ function renderSlots(date){
 
 // ─── MODAL ───
 function openMod(id){
-  selSid=id;const s=SLOTS.find(x=>x.id===id);const doc=docBy(s.did);
+  selSid=String(id);const s=SLOTS.find(x=>String(x.id)===String(id));const doc=docBy(s.did);
   document.getElementById('m-title').textContent='Request Slot';
   document.getElementById('m-sub').textContent='Send a booking request to '+doc.name;
   document.getElementById('m-stime').textContent=s.time;
@@ -909,13 +910,13 @@ function renderMybk(){
       </div>
       <div class="bkrr">📋 ${s.reason||'Visit'}<br>🧪 ${s.prod?(s.prod.length>75?s.prod.substring(0,75)+'…':s.prod):'—'}</div>
       <div class="bkst ${stc}">${stl}</div>
-      <button class="btn-cxbk" onclick="cxBk(${s.id})">❌ Cancel This Booking</button>
+      <button class="btn-cxbk" onclick="cxBk('${s.id}')">❌ Cancel This Booking</button>
     </div>`;
   }).join('');
 }
 
 window.cxBk=async function(id){
-  const s=SLOTS.find(x=>x.id===id);if(!s)return;
+  const s=SLOTS.find(x=>String(x.id)===String(id));if(!s)return;
   const doc2=docBy(s.did);
   if(!DEMO_MODE){
     try{
@@ -1122,7 +1123,7 @@ window.logout    = logout;
 document.addEventListener('DOMContentLoaded', function() {
   // Wire up static buttons immediately and again after 500ms
   function wireButtons(){
-    // Auth buttons
+    // Auth buttons (called below)
     var btnLogin = document.querySelector('#auth-login .btn-auth');
     var btnReg   = document.querySelector('#auth-reg .btn-auth');
     if(btnLogin && !btnLogin._wired){ btnLogin.addEventListener('click', function(){ window.doLogin && window.doLogin(); }); btnLogin._wired=true; }
@@ -1184,7 +1185,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('bn-prof')  && document.getElementById('bn-prof').addEventListener('click',   function(){ window.goSc && window.goSc('prof'); });
 
     console.log('DoctRep bridge loaded');
-  }, 500);
+  }
+  wireButtons();
+  setTimeout(wireButtons, 500);
 });
 
 // pickDoc MUST be global for dynamically rendered drawer items
