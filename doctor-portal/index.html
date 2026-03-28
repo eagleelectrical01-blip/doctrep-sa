@@ -419,6 +419,7 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
     </nav>
     <div class="sb-bottom">
       <button class="btn-logout" onclick="doLogout()"><span>🚪</span>Sign Out</button>
+      <button class="btn-logout" onclick="doLogout()" style="color:rgba(255,255,255,.2);font-size:.72rem;"><span>🔄</span>Switch Account</button>
     </div>
   </div>
 
@@ -597,10 +598,7 @@ document.getElementById('btn-install-dismiss').onclick = () => {
   document.getElementById('install-banner').style.display = 'none';
 };
 
-// Register service worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
+// Service worker registered below
 
 // Online/offline indicator
 window.addEventListener('online',  () => setConn(true));
@@ -738,15 +736,18 @@ function launchApp() {
 //  FIRESTORE REAL-TIME SUBSCRIPTIONS
 // ══════════════════════════════════════════════
 function subscribeToData() {
-  const slotQ = query(collection(db, 'slots'), where('doctorId','==', currentUser.uid), orderBy('date'), orderBy('time'));
+  // Simple query - no compound orderBy needed (avoids Firestore index requirement)
+  const slotQ = query(collection(db, 'slots'), where('doctorId','==', currentUser.uid));
   unsubSlots = onSnapshot(slotQ, snap => {
-    SLOTS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    SLOTS = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
     renderAll();
   });
 
-  const notifQ = query(collection(db, 'notifications'), where('doctorId','==', currentUser.uid), orderBy('createdAt','desc'));
+  const notifQ = query(collection(db, 'notifications'), where('doctorId','==', currentUser.uid));
   unsubNotifs = onSnapshot(notifQ, snap => {
-    NOTIFS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    NOTIFS = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
     updateBadges();
     if (document.getElementById('page-notifications').classList.contains('active')) renderNotifications();
   });
@@ -1024,13 +1025,19 @@ function renderAll() {
   if (document.getElementById('page-calendar').classList.contains('active'))  renderCalendar();
 }
 
-// ── AUTH STATE WATCHER (for page refresh) ──
+// ── AUTH STATE WATCHER (for page refresh only) ──
+// We only auto-launch if the user explicitly navigated back (refresh)
+// Not on first load — always show auth screen first
 if (!DEMO_MODE) {
   onAuthStateChanged(auth, async user => {
-    if (user) {
+    // Only auto-launch if app screen is not already showing AND
+    // user came from a refresh (not a fresh open)
+    if (user && document.getElementById('app-screen').style.display !== 'block') {
       currentUser = user;
       await loadDoctorProfile();
-      launchApp();
+      if (doctorProfile) {
+        launchApp();
+      }
     }
   });
 }
