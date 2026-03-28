@@ -372,7 +372,7 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
     <div class="ahdr" id="find-hdr">
       <div class="ahdr-top">
         <div class="alogo">Doct<span>Rep</span></div>
-        <button class="hmb" onclick="togDrw()"><span></span><span></span><span></span></button>
+        <button class="hmb" id="hmb-btn"><span></span><span></span><span></span></button>
       </div>
       <div class="sdpill" id="sdpill" style="display:none;">
         <div class="sdpill-icon" id="sdp-ic">🩺</div>
@@ -380,14 +380,14 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
           <div class="sdpill-name" id="sdp-nm">—</div>
           <div class="sdpill-sub" id="sdp-sb">—</div>
         </div>
-        <div class="sdpill-chg" onclick="togDrw()">Change ›</div>
+        <div class="sdpill-chg" id="sdpill-chg">Change ›</div>
       </div>
-      <div class="srow" onclick="togDrw()" id="srch-hint">🔍 Search hospitals, doctors, GPs…</div>
+      <div class="srow" id="srch-hint">🔍 Search hospitals, doctors, GPs…</div>
     </div>
-    <div class="ov" id="ov" onclick="togDrw()"></div>
+    <div class="ov" id="ov"></div>
     <div class="drw" id="drw">
       <div class="drwhdr"><h3>Browse &amp; Select Doctor</h3><p>Tap to view their open rep slots</p></div>
-      <div class="drwsrch"><input id="drw-srch" placeholder="🔍 Filter by name or city…" oninput="filDrw(this.value)"></div>
+      <div class="drwsrch"><input id="drw-srch" placeholder="🔍 Filter by name or city…"></div>
       <div class="drwbody" id="drwbody"></div>
     </div>
     <div class="sa" id="find-sa">
@@ -983,10 +983,12 @@ function saveProf(){
   if(curRep.name) curRep.ini=curRep.name.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase();
   if(!DEMO_MODE&&curRep.uid&&curRep.uid!=='demo'){
     setDoc(doc(db,'reps',curRep.uid),{name:curRep.name,co:curRep.co,tel:curRep.tel,saId:curRep.id,email:curRep.email},{merge:true})
-      .then(()=>toast('✅ Profile saved!','ok'))
+      .then(()=>{ toast('✅ Profile saved!','ok'); goSc('find'); })
       .catch(()=>toast('Error saving. Try again.','err'));
-  } else { toast('✅ Profile saved!','ok'); }
-  renderProf();
+  } else {
+    toast('✅ Profile saved!','ok');
+    goSc('find');
+  }
 }
 window.saveProf=saveProf;
 
@@ -1041,35 +1043,42 @@ window.logout    = logout;
 <script>
 // Wait for module to load then attach all button handlers via addEventListener
 document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
+  // Wire up static buttons immediately and again after 500ms
+  function wireButtons(){
     // Auth buttons
     var btnLogin = document.querySelector('#auth-login .btn-auth');
     var btnReg   = document.querySelector('#auth-reg .btn-auth');
-    if(btnLogin) btnLogin.addEventListener('click', function(){ window.doLogin && window.doLogin(); });
-    if(btnReg)   btnReg.addEventListener('click',   function(){ window.doReg   && window.doReg();   });
+    if(btnLogin && !btnLogin._wired){ btnLogin.addEventListener('click', function(){ window.doLogin && window.doLogin(); }); btnLogin._wired=true; }
+    if(btnReg   && !btnReg._wired){   btnReg.addEventListener('click',   function(){ window.doReg   && window.doReg();   }); btnReg._wired=true; }
 
     // Auth tab switching
     document.querySelectorAll('.atab').forEach(function(btn, i) {
-      btn.addEventListener('click', function(){
-        window.authSw && window.authSw(i===0?'login':'register', btn);
-      });
+      if(!btn._wired){ btn.addEventListener('click', function(){ window.authSw && window.authSw(i===0?'login':'register', btn); }); btn._wired=true; }
     });
 
     // Hamburger
-    var hmb = document.querySelector('.hmb');
-    if(hmb) hmb.addEventListener('click', function(){ window.togDrw && window.togDrw(); });
+    var hmb = document.getElementById('hmb-btn');
+    if(hmb && !hmb._wired){ hmb.addEventListener('click', function(){ window.togDrw && window.togDrw(); }); hmb._wired=true; }
 
-    // Search row
-    var sr = document.querySelector('.srow');
-    if(sr) sr.addEventListener('click', function(){ window.togDrw && window.togDrw(); });
+    // Search row (open drawer)
+    var sr = document.getElementById('srch-hint');
+    if(sr && !sr._wired){ sr.addEventListener('click', function(){ window.togDrw && window.togDrw(); }); sr._wired=true; }
 
     // Overlay close
     var ov = document.getElementById('ov');
-    if(ov) ov.addEventListener('click', function(){ window.togDrw && window.togDrw(); });
+    if(ov && !ov._wired){ ov.addEventListener('click', function(){ window.togDrw && window.togDrw(); }); ov._wired=true; }
 
-    // Drawer search
+    // sdpill change
+    var chg = document.getElementById('sdpill-chg');
+    if(chg && !chg._wired){ chg.addEventListener('click', function(){ window.togDrw && window.togDrw(); }); chg._wired=true; }
+
+    // Drawer search INPUT — allow typing and filter
     var ds = document.getElementById('drw-srch');
-    if(ds) ds.addEventListener('input', function(){ window.filDrw && window.filDrw(this.value); });
+    if(ds && !ds._wired){
+      ds.addEventListener('input', function(){ window.filDrw && window.filDrw(this.value); });
+      ds.addEventListener('keyup', function(){ window.filDrw && window.filDrw(this.value); });
+      ds._wired=true;
+    }
 
     // Modal close buttons
     var mc = document.querySelector('.btn-mc');
@@ -1122,7 +1131,7 @@ function chkRco(){   window.chkRco  && window.chkRco();   }
 function chkMco(){   window.chkMco  && window.chkMco();   }
 function chkMr(){    window.chkMr   && window.chkMr();    }
 function togDrw(){   window.togDrw  && window.togDrw();   }
-function filDrw(v){  window.filDrw  && window.filDrw(v);  }
+/* filDrw handled by delegation */
 function pickDoc(id){window.pickDoc && window.pickDoc(id);}
 function goSc(s){    window.goSc    && window.goSc(s);    }
 function openMod(id){window.openMod && window.openMod(id);}
