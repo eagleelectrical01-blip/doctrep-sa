@@ -58,7 +58,7 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
 .af label{display:block;font-size:.65rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
 .af input,.af select{width:100%;padding:10px 12px;background:rgba(255,255,255,.05);
   border:1.5px solid var(--brd2);border-radius:9px;color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.86rem;outline:none;transition:all .2s;}
-.af input::placeholder{color:var(--dim);}
+.af input::placeholder{color:rgba(255,255,255,.28);}
 .af input:focus,.af select:focus{border-color:var(--teal);background:rgba(255,255,255,.07);}
 .af select option{background:#1c2333;}
 .af2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
@@ -68,6 +68,12 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
 .btn-auth:hover{opacity:.9;}
 .anote{font-size:.7rem;color:var(--dim);text-align:center;margin-top:12px;line-height:1.6;}
 .anote a{color:var(--teal);cursor:pointer;}
+.pw-wrap{position:relative;}
+.pw-wrap input{width:100%;padding-right:42px;}
+.pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);
+  font-size:1rem;padding:0;line-height:1;}
+.pw-eye:hover{color:rgba(255,255,255,.7);}
 
 /* ── APP HEADER ── */
 .ahdr{background:linear-gradient(180deg,rgba(13,115,119,.96),rgba(13,115,119,.72));
@@ -309,7 +315,12 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
         <div class="at">Welcome back</div>
         <div class="as">Sign in to your Rep account</div>
         <div class="af"><label>Email</label><input id="l-email" type="email" placeholder="rep@company.co.za" value="thabo@aspenpharma.co.za"></div>
-        <div class="af"><label>Password</label><input id="l-pw" type="password" placeholder="••••••••" value="password123"></div>
+        <div class="af"><label>Password</label>
+          <div class="pw-wrap">
+            <input id="l-pw" type="password" placeholder="••••••••">
+            <button class="pw-eye" type="button" onclick="togglePw('l-pw','eye-lpw')" id="eye-lpw">👁</button>
+          </div>
+        </div>
         <button class="btn-auth" onclick="doLogin()">Sign In &rarr;</button>
         <div class="anote">No account? <a onclick="authSw('register',document.querySelectorAll('.atab')[1])">Register here</a></div>
       </div>
@@ -338,7 +349,18 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
         <div class="af"><label>Preferred Notifications</label>
           <select id="r-notif"><option>WhatsApp</option><option>Email</option><option>In-App</option><option>SMS</option></select>
         </div>
-        <div class="af"><label>Password</label><input id="r-pw" type="password" placeholder="Create a password"></div>
+        <div class="af"><label>Password</label>
+          <div class="pw-wrap">
+            <input id="r-pw" type="password" placeholder="Create a password (min 6 chars)">
+            <button class="pw-eye" type="button" onclick="togglePw('r-pw','eye-rpw')" id="eye-rpw">👁</button>
+          </div>
+        </div>
+        <div class="af"><label>Confirm Password</label>
+          <div class="pw-wrap">
+            <input id="r-pw2" type="password" placeholder="Repeat your password">
+            <button class="pw-eye" type="button" onclick="togglePw('r-pw2','eye-rpw2')" id="eye-rpw2">👁</button>
+          </div>
+        </div>
         <button class="btn-auth" onclick="doReg()">Create Account &rarr;</button>
         <div class="anote">Already registered? <a onclick="authSw('login',document.querySelectorAll('.atab')[0])">Sign in</a></div>
       </div>
@@ -479,12 +501,12 @@ import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc,
 //  Replace every line that says "YOUR_..."
 // ════════════════════════════════════════════════
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyBESylVeQPSsMgd0CMy3fb-f4xQwvZvtxM",
+  authDomain:        "fix-your-home-book-an-ar-ad6bc.firebaseapp.com",
+  projectId:         "fix-your-home-book-an-ar-ad6bc",
+  storageBucket:     "fix-your-home-book-an-ar-ad6bc.firebasestorage.app",
+  messagingSenderId: "985512922874",
+  appId:             "1:985512922874:web:3cc4610f84e01bfb7d4343"
 };
 // ════════════════════════════════════════════════
 
@@ -568,6 +590,13 @@ window.doLogin=async function(){
   }catch(err){toast(friendlyErr(err.code),'err');}
 };
 
+window.togglePw=function(inputId,btnId){
+  const inp=document.getElementById(inputId);
+  const btn=document.getElementById(btnId);
+  if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}
+  else{inp.type='password';btn.textContent='👁';}
+};
+
 window.doReg=async function(){
   const f=document.getElementById('r-first').value.trim();
   const l=document.getElementById('r-last').value.trim();
@@ -578,7 +607,9 @@ window.doReg=async function(){
   const t=document.getElementById('r-tel').value.trim();
   const p=document.getElementById('r-pw').value.trim();
   if(!f||!l||!saId||!co||!e||!t||!p){toast('Please complete all fields.','warn');return;}
+  const p2=document.getElementById('r-pw2').value.trim();
   if(p.length<6){toast('Password must be at least 6 characters.','warn');return;}
+  if(p!==p2){toast('Passwords do not match. Please check and try again.','warn');return;}
   if(DEMO_MODE){
     curRep={uid:'demo',name:f+' '+l,ini:(f[0]+l[0]).toUpperCase(),co,email:e,tel:t,id:saId};
     loadDemoData();launch();toast('✅ Welcome to DoctRep, '+f+'! (Demo Mode)','ok');return;
@@ -693,24 +724,37 @@ function renderDrw(q){
 }
 
 function pickDoc(id){
-  selDid=id;const doc=docBy(id);const oc=openCnt(id);
+  selDid=id;
+  const d=docBy(id);
+  if(!d){toast('Doctor not found. Please try again.','warn');togDrw();return;}
+  const oc=openCnt(id);
   document.getElementById('sdpill').style.display='flex';
   document.getElementById('srch-hint').style.display='none';
-  document.getElementById('sdp-ic').textContent=doc.icon;
-  document.getElementById('sdp-nm').textContent=doc.name;
-  document.getElementById('sdp-sb').textContent=doc.type+' &middot; '+doc.place+' &middot; '+doc.km+'km';
-  document.getElementById('vn').textContent=doc.name;
-  document.getElementById('vs').textContent=doc.type+' &middot; '+doc.place+' &middot; '+oc+' open slot'+(oc===1?'':'s');
+  document.getElementById('sdp-ic').textContent=d.icon||'🩺';
+  document.getElementById('sdp-nm').textContent=d.name;
+  document.getElementById('sdp-sb').textContent=d.type+' · '+d.place+' · '+(d.km||'?')+'km';
+  document.getElementById('vn').textContent=d.name;
+  document.getElementById('vs').textContent=d.type+' · '+d.place+' · '+oc+' open slot'+(oc===1?'':'s');
   document.getElementById('no-doc').style.display='none';
   document.getElementById('doc-view').style.display='block';
   togDrw();renderDrw('');renderSlots(curDt);
 }
+window.pickDoc=pickDoc;
+window._pickDocModule=pickDoc; // safe alias for bridge
+
+// ─── DRAWER CLICK DELEGATION ───
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('.dit');
+  if(btn && btn.dataset.did){
+    if(window._pickDocModule) window._pickDocModule(btn.dataset.did);
+  }
+});
 
 // ─── DATE PILLS ───
 function renderDrow(){
   const c=document.getElementById('drow');
   const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const base=new Date('2026-03-26');c.innerHTML='';
+  const base=new Date();base.setDate(base.getDate()-1);c.innerHTML='';
   for(let i=0;i<10;i++){
     const d=new Date(base);d.setDate(base.getDate()+i);
     const iso=d.toISOString().split('T')[0];
@@ -959,22 +1003,98 @@ window.logout    = logout;
 </script>
 
 <script>
-// Bridge for module functions — onclick attributes need these in global scope
-function doLogin(){ window.doLogin && window.doLogin(); }
-function doReg(){   window.doReg   && window.doReg();   }
-function authSw(t,b){ window.authSw && window.authSw(t,b); }
-function chkRco(){  window.chkRco  && window.chkRco();  }
-function chkMco(){  window.chkMco  && window.chkMco();  }
-function chkMr(){   window.chkMr   && window.chkMr();   }
-function togDrw(){  window.togDrw  && window.togDrw();  }
-function filDrw(v){ window.filDrw  && window.filDrw(v); }
-function pickDoc(id){ window.pickDoc && window.pickDoc(id); }
-function goSc(s){   window.goSc    && window.goSc(s);   }
-function openMod(id){ window.openMod && window.openMod(id); }
-function closeMod(){ window.closeMod && window.closeMod(); }
-function submitReq(){ window.submitReq && window.submitReq(); }
-function cxBk(id){ window.cxBk && window.cxBk(id); }
-function logout(){ window.logout && window.logout(); }
+// Wait for module to load then attach all button handlers via addEventListener
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    // Auth buttons
+    var btnLogin = document.querySelector('#auth-login .btn-auth');
+    var btnReg   = document.querySelector('#auth-reg .btn-auth');
+    if(btnLogin) btnLogin.addEventListener('click', function(){ window.doLogin && window.doLogin(); });
+    if(btnReg)   btnReg.addEventListener('click',   function(){ window.doReg   && window.doReg();   });
+
+    // Auth tab switching
+    document.querySelectorAll('.atab').forEach(function(btn, i) {
+      btn.addEventListener('click', function(){
+        window.authSw && window.authSw(i===0?'login':'register', btn);
+      });
+    });
+
+    // Hamburger
+    var hmb = document.querySelector('.hmb');
+    if(hmb) hmb.addEventListener('click', function(){ window.togDrw && window.togDrw(); });
+
+    // Search row
+    var sr = document.querySelector('.srow');
+    if(sr) sr.addEventListener('click', function(){ window.togDrw && window.togDrw(); });
+
+    // Overlay close
+    var ov = document.getElementById('ov');
+    if(ov) ov.addEventListener('click', function(){ window.togDrw && window.togDrw(); });
+
+    // Drawer search
+    var ds = document.getElementById('drw-srch');
+    if(ds) ds.addEventListener('input', function(){ window.filDrw && window.filDrw(this.value); });
+
+    // Modal close buttons
+    var mc = document.querySelector('.btn-mc');
+    if(mc) mc.addEventListener('click', function(){ window.closeMod && window.closeMod(); });
+
+    // Submit request
+    var sub = document.querySelector('.btn-sub');
+    if(sub) sub.addEventListener('click', function(){ window.submitReq && window.submitReq(); });
+
+    // sdpill change button
+    var chg = document.querySelector('.sdpill-chg');
+    if(chg) chg.addEventListener('click', function(){ window.togDrw && window.togDrw(); });
+
+    // Company other toggle
+    var rco = document.getElementById('r-co');
+    if(rco) rco.addEventListener('change', function(){ window.chkRco && window.chkRco(); });
+    var mco = document.getElementById('m-co');
+    if(mco) mco.addEventListener('change', function(){ window.chkMco && window.chkMco(); });
+    var mr  = document.getElementById('m-reason');
+    if(mr)  mr.addEventListener('change',  function(){ window.chkMr  && window.chkMr();  });
+
+    // Bottom nav
+    document.getElementById('bn-find')  && document.getElementById('bn-find').addEventListener('click',  function(){ window.goSc && window.goSc('find'); });
+    document.getElementById('bn-mybk')  && document.getElementById('bn-mybk').addEventListener('click',  function(){ window.goSc && window.goSc('mybk'); });
+    document.getElementById('bn-notif') && document.getElementById('bn-notif').addEventListener('click',  function(){ window.goSc && window.goSc('notif'); });
+    document.getElementById('bn-prof')  && document.getElementById('bn-prof').addEventListener('click',   function(){ window.goSc && window.goSc('prof'); });
+
+    console.log('DoctRep bridge loaded');
+  }, 500);
+});
+
+// pickDoc MUST be global for dynamically rendered drawer items
+// This is a safe wrapper — it does NOT call itself
+var _pickDocCalled = false;
+function pickDoc(id) {
+  if(window._pickDocModule) {
+    window._pickDocModule(id);
+  } else {
+    setTimeout(function(){ pickDoc(id); }, 200);
+  }
+}
+</script>
+
+<script>
+// ── BRIDGE: makes module functions available to onclick attributes ──
+function doLogin(){  window.doLogin  && window.doLogin();  }
+function doReg(){    window.doReg    && window.doReg();    }
+function authSw(t,b){window.authSw  && window.authSw(t,b);}
+function chkRco(){   window.chkRco  && window.chkRco();   }
+function chkMco(){   window.chkMco  && window.chkMco();   }
+function chkMr(){    window.chkMr   && window.chkMr();    }
+function togDrw(){   window.togDrw  && window.togDrw();   }
+function filDrw(v){  window.filDrw  && window.filDrw(v);  }
+function pickDoc(id){window.pickDoc && window.pickDoc(id);}
+function goSc(s){    window.goSc    && window.goSc(s);    }
+function openMod(id){window.openMod && window.openMod(id);}
+function closeMod(){ window.closeMod&& window.closeMod();  }
+function submitReq(){window.submitReq&&window.submitReq(); }
+function cxBk(id){   window.cxBk   && window.cxBk(id);   }
+function logout(){   window.logout  && window.logout();    }
+function togglePw(i,b){window.togglePw&&window.togglePw(i,b);}
 </script>
 </body>
 </html>
