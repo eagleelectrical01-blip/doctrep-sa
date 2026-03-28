@@ -1027,7 +1027,7 @@ function toast(msg,type){
   setTimeout(()=>{t.className='toast';},3400);
 }
 
-// ── EXPOSE ALL FUNCTIONS GLOBALLY (required for type="module") ──
+// ── EXPOSE ALL FUNCTIONS GLOBALLY ──
 window.authSw    = authSw;
 window.chkRco    = chkRco;
 window.chkMco    = chkMco;
@@ -1038,6 +1038,67 @@ window.goSc      = goSc;
 window.openMod   = openMod;
 window.closeMod  = closeMod;
 window.logout    = logout;
+
+// ── ATTACH ALL BUTTON EVENTS DIRECTLY FROM MODULE (most reliable) ──
+(function attachAllEvents(){
+  // Hamburger button
+  var hmb = document.getElementById('hmb-btn');
+  if(hmb){ hmb.onclick = togDrw; }
+
+  // Search hint row  
+  var srch = document.getElementById('srch-hint');
+  if(srch){ srch.onclick = togDrw; }
+
+  // Overlay
+  var ov = document.getElementById('ov');
+  if(ov){ ov.onclick = togDrw; }
+
+  // sdpill change
+  var chg = document.getElementById('sdpill-chg');
+  if(chg){ chg.onclick = togDrw; }
+
+  // Drawer search
+  var ds = document.getElementById('drw-srch');
+  if(ds){
+    ds.oninput = function(){ filDrw(this.value); };
+    ds.onkeyup = function(){ filDrw(this.value); };
+  }
+
+  // Auth buttons
+  var btnLogin = document.querySelector('#auth-login .btn-auth');
+  var btnReg   = document.querySelector('#auth-reg .btn-auth');
+  if(btnLogin){ btnLogin.onclick = function(){ doLogin(); }; }
+  if(btnReg){   btnReg.onclick   = function(){ doReg(); };   }
+
+  // Auth tabs
+  document.querySelectorAll('.atab').forEach(function(btn, i){
+    btn.onclick = function(){ authSw(i===0?'login':'register', btn); };
+  });
+
+  // Bottom nav
+  var bnFind  = document.getElementById('bn-find');
+  var bnMybk  = document.getElementById('bn-mybk');
+  var bnNotif = document.getElementById('bn-notif');
+  var bnProf  = document.getElementById('bn-prof');
+  if(bnFind)  bnFind.onclick  = function(){ goSc('find'); };
+  if(bnMybk)  bnMybk.onclick  = function(){ goSc('mybk'); };
+  if(bnNotif) bnNotif.onclick = function(){ goSc('notif'); };
+  if(bnProf)  bnProf.onclick  = function(){ goSc('prof'); };
+
+  // Modal close and submit
+  var mc  = document.querySelector('.btn-mc');
+  var sub = document.querySelector('.btn-sub');
+  if(mc)  mc.onclick  = function(){ closeMod(); };
+  if(sub) sub.onclick = function(){ submitReq(); };
+
+  // Company and reason toggles
+  var rco = document.getElementById('r-co');
+  var mco = document.getElementById('m-co');
+  var mr  = document.getElementById('m-reason');
+  if(rco) rco.onchange = function(){ chkRco(); };
+  if(mco) mco.onchange = function(){ chkMco(); };
+  if(mr)  mr.onchange  = function(){ chkMr(); };
+})();
 </script>
 
 <script>
