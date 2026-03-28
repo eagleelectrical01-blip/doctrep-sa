@@ -872,7 +872,9 @@ function renderSlotsTable() {
   tbody.innerHTML = sorted.map(s => {
     const ps = s.prod ? (s.prod.length>34?s.prod.substring(0,34)+'…':s.prod) : '—';
     const bdg = s.status==='open'?'<span class="badge b-open">🟢 Open</span>':s.status==='booked'?'<span class="badge b-conf">🔵 Confirmed</span>':'<span class="badge b-pend">⏳ Pending</span>';
-    const act = s.status==='open' ? '—' : s.status==='pending'
+    const act = s.status==='open'
+      ? `<button class="bsm bsm-cx" onclick="deleteSlot('${s.id}')">🗑 Delete</button>`
+      : s.status==='pending'
       ? `<div class="act-btns"><button class="bsm bsm-ok" onclick="approve('${s.id}')">✅ Approve</button><button class="bsm bsm-cx" onclick="openCx('${s.id}',true)">❌ Decline</button></div>`
       : `<button class="bsm bsm-cx" onclick="openCx('${s.id}',false)">🚫 Cancel</button>`;
     return `<tr><td>${fmtD(s.date)}</td><td class="td-time">${s.time}</td><td>${s.dur}min</td><td>${bdg}</td>
@@ -898,6 +900,23 @@ window.addSlot = async function() {
   document.getElementById('sl-time').value = '';
   document.getElementById('sl-note').value = '';
   showToast('✅ Slot added — reps can now see and request it', 'ok');
+};
+
+// ══════════════════════════════════════════════
+//  DELETE SLOT
+// ══════════════════════════════════════════════
+window.deleteSlot = async function(id) {
+  if (!confirm('Delete this open slot? This cannot be undone.')) return;
+  if (!DEMO_MODE) {
+    try {
+      await deleteDoc(doc(db, 'slots', id));
+      showToast('🗑 Slot deleted.', 'ok');
+    } catch(e) { showToast('Error deleting slot. Please try again.', 'err'); }
+  } else {
+    SLOTS = SLOTS.filter(s => s.id !== id);
+    renderAll();
+    showToast('🗑 Slot deleted.', 'ok');
+  }
 };
 
 // ══════════════════════════════════════════════
