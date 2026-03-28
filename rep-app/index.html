@@ -745,11 +745,31 @@ function pickDoc(id){
 window.pickDoc=pickDoc;
 window._pickDocModule=pickDoc; // safe alias for bridge
 
-// ─── DRAWER CLICK DELEGATION ───
+// ─── GLOBAL CLICK DELEGATION (handles dynamically created buttons) ───
 document.addEventListener('click', function(e){
-  var btn = e.target.closest('.dit');
-  if(btn && btn.dataset.did){
-    if(window._pickDocModule) window._pickDocModule(btn.dataset.did);
+  // Drawer doctor items
+  var dit = e.target.closest('.dit');
+  if(dit){
+    var did = dit.getAttribute('data-did') || dit.getAttribute('onclick');
+    // Get the id from onclick="pickDoc('d1')"
+    var match = (dit.getAttribute('onclick')||'').match(/pickDoc\('([^']+)'\)/);
+    if(match && window.pickDoc) window.pickDoc(match[1]);
+    return;
+  }
+  // Profile save button (dynamically created)
+  if(e.target.id==='prof-save-btn' || e.target.closest('#prof-save-btn')){
+    window.saveProf && window.saveProf(); return;
+  }
+  // Profile logout button (dynamically created)
+  if(e.target.id==='prof-logout-btn' || e.target.closest('#prof-logout-btn')){
+    window.logout && window.logout(); return;
+  }
+  // Eye toggle buttons
+  var eye = e.target.closest('.pw-eye');
+  if(eye){
+    var inp = eye.previousElementSibling;
+    if(inp){ inp.type = inp.type==='password'?'text':'password'; eye.textContent = inp.type==='password'?'👁':'🙈'; }
+    return;
   }
 });
 
@@ -921,16 +941,16 @@ function renderProf(){
     </div>
     <div class="profsec">
       <div class="profsect">Personal Details</div>
-      <div class="proffield"><label>Full Name</label><input id="prof-name-input" value="${curRep.name}" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.04);border:1.5px solid var(--brd2);border-radius:7px;color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;"></div>
-      <div class="proffield"><label>SA ID Number</label><input value="${curRep.id||''}"></div>
-      <div class="proffield"><label>Contact Number</label><input value="${curRep.tel||''}"></div>
-      <div class="proffield"><label>Email</label><input type="email" value="${curRep.email||''}"></div>
+      <div class="proffield"><label>Full Name</label><input id="prof-name-input" value="${curRep.name||''}"></div>
+      <div class="proffield"><label>SA ID Number</label><input id="prof-id-input" value="${curRep.id||''}"></div>
+      <div class="proffield"><label>Contact Number</label><input id="prof-tel-input" value="${curRep.tel||''}"></div>
+      <div class="proffield"><label>Email</label><input id="prof-email-input" type="email" value="${curRep.email||''}"></div>
     </div>
     <div class="profsec">
       <div class="profsect">Company Details</div>
-      <div class="proffield"><label>Pharmaceutical Company</label><input id="prof-co-input" value="${curRep.co||''}" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.04);border:1.5px solid var(--brd2);border-radius:7px;color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;"></div>
+      <div class="proffield"><label>Pharmaceutical Company</label><input id="prof-co-input" value="${curRep.co||''}"></div>
       <div class="proffield"><label>Preferred Notifications</label>
-        <select><option>WhatsApp</option><option>Email</option><option>In-App</option><option>SMS</option></select>
+        <select id="prof-notif-input"><option>WhatsApp</option><option>Email</option><option>In-App</option><option>SMS</option></select>
       </div>
     </div>
     <div class="profsec">
@@ -946,7 +966,7 @@ function renderProf(){
         </div>
       </div>
     </div>
-    <button class="btn-sv" onclick="saveProf()">💾 Save Profile</button>
+    <button class="btn-sv" id="prof-save-btn">💾 Save Profile</button>
     <button class="btn-lo" onclick="logout()">🚪 Sign Out</button>`;
 }
 
