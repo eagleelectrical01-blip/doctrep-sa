@@ -511,7 +511,7 @@ db   = firebase.firestore();
 
 // ── Compat SDK helper aliases (match modular API names used below) ──
 const collection  = (db, name) => db.collection(name);
-const doc         = (db, col, id) => db.collection(col).doc(id);
+const fbDoc       = (db, col, id) => db.collection(col).doc(id);
 const addDoc      = (ref, data) => ref.add(data);
 const setDoc      = (ref, data, opts) => opts ? ref.set(data, opts) : ref.set(data);
 const getDoc      = (ref) => ref.get();
@@ -594,7 +594,7 @@ window.doLogin=async function(){
   }
   try{
     const cred=await auth.signInWithEmailAndPassword(e,p);
-    const snap=await getDoc(doc(db,'reps',cred.user.uid));
+    const snap=await getDoc(fbDoc(db,'reps',cred.user.uid));
     if(snap.exists()){const d=snap.data();curRep={uid:cred.user.uid,name:d.name,ini:(d.name.split(' ').map(x=>x[0]).join('').substring(0,2)).toUpperCase(),co:d.co,email:d.email,tel:d.tel,id:d.saId};}
     else{curRep={uid:cred.user.uid,name:'Rep',ini:'R',co:'',email:e,tel:'',id:''};}
     launch();
@@ -628,7 +628,7 @@ window.doReg=async function(){
   try{
     const cred=await auth.createUserWithEmailAndPassword(e,p);
     curRep={uid:cred.user.uid,name:f+' '+l,ini:(f[0]+l[0]).toUpperCase(),co,email:e,tel:t,id:saId};
-    await setDoc(doc(db,'reps',cred.user.uid),{name:f+' '+l,co,email:e,tel:t,saId,createdAt:serverTimestamp()});
+    await setDoc(fbDoc(db,'reps',cred.user.uid),{name:f+' '+l,co,email:e,tel:t,saId,createdAt:serverTimestamp()});
     launch();toast('✅ Welcome to DoctRep, '+f+'!','ok');
   }catch(err){toast(friendlyErr(err.code),'err');}
 };
@@ -884,7 +884,7 @@ window.submitReq=async function(){
   const doc2=docBy(s.did);
   if(!DEMO_MODE){
     try{
-      await updateDoc(doc(db,'slots',s.id),{status:'pending',rep:name,repUid:curRep.uid,co,prod,tel,reason,doctorId:s.doctorId||s.did||selDid});
+      await updateDoc(fbDoc(db,'slots',s.id),{status:'pending',rep:name,repUid:curRep.uid,co,prod,tel,reason,doctorId:s.doctorId||s.did||selDid});
       await addDoc(collection(db,'notifications'),{doctorId:s.doctorId||s.did||selDid,repUid:curRep.uid,msg:'📨 New request: '+name+' ('+co+') — '+s.time+' on '+fmtD(s.date),type:'info',time:nowT(),unread:true,createdAt:serverTimestamp()});
       await addDoc(collection(db,'notifications'),{repUid:curRep.uid,msg:'⏳ Your request to '+(doc2?doc2.name:'the doctor')+' ('+s.time+' on '+fmtD(s.date)+') is pending approval.',type:'info',time:nowT(),unread:true,createdAt:serverTimestamp()});
     }catch(e){toast('Error sending request. Please try again.','err');return;}
@@ -931,7 +931,7 @@ window.cxBk=async function(id){
   const doc2=docBy(s.did);
   if(!DEMO_MODE){
     try{
-      await updateDoc(doc(db,'slots',id),{status:'open',rep:null,repUid:null,co:null,prod:null,tel:null,reason:null});
+      await updateDoc(fbDoc(db,'slots',id),{status:'open',rep:null,repUid:null,co:null,prod:null,tel:null,reason:null});
       await addDoc(collection(db,'notifications'),{doctorId:s.doctorId||s.did||selDid,repUid:curRep.uid,msg:'Rep '+curRep.name+' cancelled their '+s.time+' booking on '+fmtD(s.date)+'. Slot is now open.',type:'warn',time:nowT(),unread:true,createdAt:serverTimestamp()});
       await addDoc(collection(db,'notifications'),{repUid:curRep.uid,msg:'🚫 You cancelled your '+s.time+' booking with '+(doc2?doc2.name:'the doctor')+' on '+fmtD(s.date)+'. Slot is now open again.',type:'warn',time:nowT(),unread:true,createdAt:serverTimestamp()});
     }catch(e){toast('Error cancelling. Please try again.','err');return;}
@@ -1010,7 +1010,7 @@ function saveProf(){
   if(c)curRep.co=c.value.trim();
   if(curRep.name) curRep.ini=curRep.name.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase();
   if(!DEMO_MODE&&curRep.uid&&curRep.uid!=='demo'){
-    setDoc(doc(db,'reps',curRep.uid),{name:curRep.name,co:curRep.co,tel:curRep.tel,saId:curRep.id,email:curRep.email},{merge:true})
+    setDoc(fbDoc(db,'reps',curRep.uid),{name:curRep.name,co:curRep.co,tel:curRep.tel,saId:curRep.id,email:curRep.email},{merge:true})
       .then(()=>{ toast('✅ Profile saved!','ok'); goSc('find'); })
       .catch(()=>toast('Error saving. Try again.','err'));
   } else {
