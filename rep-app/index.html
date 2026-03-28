@@ -675,6 +675,7 @@ function goSc(s){
   if(s==='notif')renderNotif();
   if(s==='prof')renderProf();
 }
+window.goSc=goSc;
 
 // ─── HELPERS ───
 function fmtD(d){
@@ -696,7 +697,9 @@ function togDrw(){
   document.getElementById('drw').classList.toggle('on');
   document.getElementById('ov').classList.toggle('on');
 }
+window.togDrw=togDrw;
 function filDrw(q){renderDrw(q);}
+window.filDrw=filDrw;
 
 function renderDrw(q){
   q=(q||'').toLowerCase();
@@ -808,6 +811,10 @@ function openMod(id){
   document.getElementById('modal').classList.add('on');
 }
 function closeMod(){document.getElementById('modal').classList.remove('on');selSid=null;}
+window.openMod=openMod;
+window.closeMod=closeMod;
+window.chkMco=chkMco;
+window.chkMr=chkMr;
 function chkMco(){document.getElementById('mco-ow').style.display=document.getElementById('m-co').value==='Other'?'block':'none';}
 function chkMr(){document.getElementById('mr-ow').style.display=document.getElementById('m-reason').value==='Other'?'block':'none';}
 
@@ -914,25 +921,14 @@ function renderProf(){
     </div>
     <div class="profsec">
       <div class="profsect">Personal Details</div>
-      <div class="proffield"><label>Full Name</label><input value="${curRep.name}"></div>
+      <div class="proffield"><label>Full Name</label><input id="prof-name-input" value="${curRep.name}" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.04);border:1.5px solid var(--brd2);border-radius:7px;color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;"></div>
       <div class="proffield"><label>SA ID Number</label><input value="${curRep.id||''}"></div>
       <div class="proffield"><label>Contact Number</label><input value="${curRep.tel||''}"></div>
       <div class="proffield"><label>Email</label><input type="email" value="${curRep.email||''}"></div>
     </div>
     <div class="profsec">
       <div class="profsect">Company Details</div>
-      <div class="proffield"><label>Pharmaceutical Company</label>
-        <select>
-          <option ${curRep.co==='Aspen Pharmacare'?'selected':''}>Aspen Pharmacare</option>
-          <option ${curRep.co==='Adcock Ingram'?'selected':''}>Adcock Ingram</option>
-          <option ${curRep.co==='Pfizer SA'?'selected':''}>Pfizer SA</option>
-          <option ${curRep.co==='Novartis SA'?'selected':''}>Novartis SA</option>
-          <option ${curRep.co==='Roche SA'?'selected':''}>Roche SA</option>
-          <option ${curRep.co==='MSD SA'?'selected':''}>MSD SA</option>
-          <option ${curRep.co==='Sanofi SA'?'selected':''}>Sanofi SA</option>
-          <option>Other</option>
-        </select>
-      </div>
+      <div class="proffield"><label>Pharmaceutical Company</label><input id="prof-co-input" value="${curRep.co||''}" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.04);border:1.5px solid var(--brd2);border-radius:7px;color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;"></div>
       <div class="proffield"><label>Preferred Notifications</label>
         <select><option>WhatsApp</option><option>Email</option><option>In-App</option><option>SMS</option></select>
       </div>
@@ -950,9 +946,29 @@ function renderProf(){
         </div>
       </div>
     </div>
-    <button class="btn-sv">💾 Save Profile</button>
+    <button class="btn-sv" onclick="saveProf()">💾 Save Profile</button>
     <button class="btn-lo" onclick="logout()">🚪 Sign Out</button>`;
 }
+
+function saveProf(){
+  if(!curRep)return;
+  const n=document.getElementById('prof-name-input');
+  const i=document.getElementById('prof-id-input');
+  const t=document.getElementById('prof-tel-input');
+  const c=document.getElementById('prof-co-input');
+  if(n)curRep.name=n.value.trim();
+  if(i)curRep.id=i.value.trim();
+  if(t)curRep.tel=t.value.trim();
+  if(c)curRep.co=c.value.trim();
+  if(curRep.name) curRep.ini=curRep.name.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase();
+  if(!DEMO_MODE&&curRep.uid&&curRep.uid!=='demo'){
+    setDoc(doc(db,'reps',curRep.uid),{name:curRep.name,co:curRep.co,tel:curRep.tel,saId:curRep.id,email:curRep.email},{merge:true})
+      .then(()=>toast('✅ Profile saved!','ok'))
+      .catch(()=>toast('Error saving. Try again.','err'));
+  } else { toast('✅ Profile saved!','ok'); }
+  renderProf();
+}
+window.saveProf=saveProf;
 
 window.logout=async function(){
   if(unsubDocs)unsubDocs();
@@ -1094,6 +1110,7 @@ function closeMod(){ window.closeMod&& window.closeMod();  }
 function submitReq(){window.submitReq&&window.submitReq(); }
 function cxBk(id){   window.cxBk   && window.cxBk(id);   }
 function logout(){   window.logout  && window.logout();    }
+function saveProf(){  window.saveProf&& window.saveProf();  }
 function togglePw(i,b){window.togglePw&&window.togglePw(i,b);}
 </script>
 </body>
