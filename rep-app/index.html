@@ -284,10 +284,6 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
   .phone{width:100vw;min-height:100vh;border-radius:0;box-shadow:none;}.notch{display:none;}
 }
 </style>
-<!-- Firebase Compat SDK — loads as regular script, no module scope issues -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="page-label">DoctRep SA &middot; Rep Mobile App</div>
@@ -491,6 +487,9 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 // ── Firebase Compat SDK — functions available globally, no module scope ──
 const firebaseConfig = {
