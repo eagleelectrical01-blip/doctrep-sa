@@ -305,6 +305,10 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
   .dash-grid{grid-template-columns:1fr;}
 }
 </style>
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -527,18 +531,8 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <!-- FIREBASE SDK -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
-  onSnapshot, query, where, orderBy, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-// ══════════════════════════════════════════════
-//  🔥 FIREBASE CONFIG — replace with your own
-//  Get this from: Firebase Console → Project Settings → Your Apps → Web
-// ══════════════════════════════════════════════
+<script>
+// ── Firebase Compat SDK ──
 const firebaseConfig = {
   apiKey:            "AIzaSyBESylVeQPSsMgd0CMy3fb-f4xQwvZvtxM",
   authDomain:        "fix-your-home-book-an-ar-ad6bc.firebaseapp.com",
@@ -548,20 +542,27 @@ const firebaseConfig = {
   appId:             "1:985512922874:web:3cc4610f84e01bfb7d4343"
 };
 
-// ── DEMO MODE (works without Firebase) ──
-const DEMO_MODE = firebaseConfig.apiKey === "YOUR_API_KEY";
-
-let app, auth, db;
+const DEMO_MODE = false;
 let unsubSlots = null;
 let unsubNotifs = null;
 
-if (!DEMO_MODE) {
-  app  = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db   = getFirestore(app);
-  document.getElementById('fb-status').style.display = 'block';
-  setTimeout(() => document.getElementById('fb-status').style.display = 'none', 3000);
-}
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// Compat helper aliases
+const collection  = (db, name) => db.collection(name);
+const doc         = (db, col, id) => db.collection(col).doc(id);
+const addDoc      = (ref, data) => ref.add(data);
+const setDoc      = (ref, data, opts) => opts ? ref.set(data, opts) : ref.set(data);
+const getDoc      = (ref) => ref.get();
+const updateDoc   = (ref, data) => ref.update(data);
+const deleteDoc   = (ref) => ref.delete();
+const onSnapshot  = (ref, cb) => ref.onSnapshot(cb);
+const serverTimestamp = () => firebase.firestore.FieldValue.serverTimestamp();
+function query(ref, ...constraints) { let q=ref; for(const c of constraints){q=c(q);} return q; }
+const where   = (f, op, v) => q => q.where(f, op, v);
+const orderBy = (f, d)     => q => q.orderBy(f, d||'asc');
 
 // ══════════════════════════════════════════════
 //  STATE
@@ -619,7 +620,6 @@ function authTab(tab, btn) {
   if (btn) btn.classList.add('active');
   hideErr();
 }
-window.authTab = authTab;
 
 function showErr(msg) {
   const el = document.getElementById('auth-err');
@@ -635,7 +635,7 @@ async function doLogin() {
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
-    const cred = await signInWithEmailAndPassword(auth, email, pw);
+    const cred = await auth.signInWithEmailAndPassword(email, pw);
     currentUser = cred.user;
     await loadDoctorProfile();
     launchApp();
@@ -643,7 +643,6 @@ async function doLogin() {
     showErr(friendlyError(e.code));
   } finally { btn.disabled = false; btn.textContent = 'Sign In to Dashboard →'; }
 }
-window.doLogin = doLogin;
 
 async function doRegister() {
   if (DEMO_MODE) { demoLogin(); return; }
@@ -660,7 +659,7 @@ async function doRegister() {
   const btn = document.getElementById('btn-register');
   btn.disabled = true; btn.textContent = 'Creating account…';
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    const cred = await auth.createUserWithEmailAndPassword(email, pw);
     currentUser = cred.user;
     doctorProfile = { uid: currentUser.uid, first, last, name: 'Dr. '+first+' '+last, type, place, city, province: prov, email };
     await setDoc(doc(db, 'doctors', currentUser.uid), { ...doctorProfile, createdAt: serverTimestamp() });
@@ -670,7 +669,6 @@ async function doRegister() {
     showErr(friendlyError(e.code));
   } finally { btn.disabled = false; btn.textContent = 'Create My DoctRep Account →'; }
 }
-window.doRegister = doRegister;
 
 async function loadDoctorProfile() {
   const snap = await getDoc(doc(db, 'doctors', currentUser.uid));
@@ -685,12 +683,11 @@ function friendlyError(code) {
 async function doLogout() {
   if (unsubSlots)  unsubSlots();
   if (unsubNotifs) unsubNotifs();
-  if (!DEMO_MODE) await signOut(auth);
+  await auth.signOut();
   currentUser = null; doctorProfile = null; SLOTS = []; NOTIFS = [];
   document.getElementById('app-screen').style.display  = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
 }
-window.doLogout = doLogout;
 
 // ══════════════════════════════════════════════
 //  DEMO MODE (no Firebase needed)
@@ -1044,22 +1041,19 @@ function renderAll() {
   if (document.getElementById('page-calendar').classList.contains('active'))  renderCalendar();
 }
 
-// ── AUTH STATE WATCHER (for page refresh only) ──
-// We only auto-launch if the user explicitly navigated back (refresh)
-// Not on first load — always show auth screen first
-if (!DEMO_MODE) {
-  onAuthStateChanged(auth, async user => {
-    // Only auto-launch if app screen is not already showing AND
-    // user came from a refresh (not a fresh open)
-    if (user && document.getElementById('app-screen').style.display !== 'block') {
-      currentUser = user;
-      await loadDoctorProfile();
-      if (doctorProfile) {
-        launchApp();
-      }
-    }
-  });
-}
+// ── AUTH STATE WATCHER ──
+// NEVER auto-launch on fresh page open — doctor must always sign in manually.
+// Auth screen is visible by default. We only auto-launch if auth screen
+// has been hidden (i.e. doctor already logged in this session via login button).
+auth.onAuthStateChanged(async function(user) {
+  const authScreen = document.getElementById('auth-screen');
+  const isAuthVisible = authScreen.style.display !== 'none';
+  if (user && !isAuthVisible) {
+    currentUser = user;
+    await loadDoctorProfile();
+    if (doctorProfile) launchApp();
+  }
+});
 </script>
 
 <!-- SERVICE WORKER REGISTRATION -->
