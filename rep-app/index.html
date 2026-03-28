@@ -284,6 +284,10 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
   .phone{width:100vw;min-height:100vh;border-radius:0;box-shadow:none;}.notch{display:none;}
 }
 </style>
+<!-- Firebase Compat SDK — loads as regular script, no module scope issues -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="page-label">DoctRep SA &middot; Rep Mobile App</div>
@@ -487,19 +491,8 @@ body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%
   </div>
 </div>
 
-<script type="module">
-import { initializeApp }    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc,
-  onSnapshot, query, where, orderBy, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-// ════════════════════════════════════════════════
-//  🔥 PASTE YOUR FIREBASE CONFIG HERE
-//  Firebase Console → Project Settings → Your Apps → Web
-//  Replace every line that says "YOUR_..."
-// ════════════════════════════════════════════════
+<script>
+// ── Firebase Compat SDK — functions available globally, no module scope ──
 const firebaseConfig = {
   apiKey:            "AIzaSyBESylVeQPSsMgd0CMy3fb-f4xQwvZvtxM",
   authDomain:        "fix-your-home-book-an-ar-ad6bc.firebaseapp.com",
@@ -508,16 +501,34 @@ const firebaseConfig = {
   messagingSenderId: "985512922874",
   appId:             "1:985512922874:web:3cc4610f84e01bfb7d4343"
 };
-// ════════════════════════════════════════════════
 
-const DEMO_MODE = firebaseConfig.apiKey === "YOUR_API_KEY";
+const DEMO_MODE = false; // Firebase config is set — always use Firebase
 let app, auth, db, unsubDocs, unsubSlots, unsubNotifs;
 
-if (!DEMO_MODE) {
-  app  = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db   = getFirestore(app);
+app  = firebase.initializeApp(firebaseConfig);
+auth = firebase.auth();
+db   = firebase.firestore();
+
+// ── Compat SDK helper aliases (match modular API names used below) ──
+const collection  = (db, name) => db.collection(name);
+const doc         = (db, col, id) => db.collection(col).doc(id);
+const addDoc      = (ref, data) => ref.add(data);
+const setDoc      = (ref, data, opts) => opts ? ref.set(data, opts) : ref.set(data);
+const getDoc      = (ref) => ref.get();
+const updateDoc   = (ref, data) => ref.update(data);
+const onSnapshot  = (ref, cb) => ref.onSnapshot(cb);
+const serverTimestamp = () => firebase.firestore.FieldValue.serverTimestamp();
+function query(ref, ...constraints) {
+  let q = ref;
+  for (const c of constraints) { q = c(q); }
+  return q;
 }
+const where   = (f, op, v) => q => q.where(f, op, v);
+const orderBy = (f, d)     => q => q.orderBy(f, d||'asc');
+// onAuthStateChanged used directly via auth.onAuthStateChanged
+// signOut used directly via auth.signOut()
+// signInWithEmailAndPassword used directly via auth
+// createUserWithEmailAndPassword used directly via auth
 
 // ─── CLOCK ───
 function tick(){const n=new Date();document.getElementById('clock').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
@@ -582,7 +593,7 @@ window.doLogin=async function(){
     loadDemoData();launch();toast('🟡 Demo Mode — add Firebase config to go live','warn');return;
   }
   try{
-    const cred=await signInWithEmailAndPassword(auth,e,p);
+    const cred=await auth.signInWithEmailAndPassword(e,p);
     const snap=await getDoc(doc(db,'reps',cred.user.uid));
     if(snap.exists()){const d=snap.data();curRep={uid:cred.user.uid,name:d.name,ini:(d.name.split(' ').map(x=>x[0]).join('').substring(0,2)).toUpperCase(),co:d.co,email:d.email,tel:d.tel,id:d.saId};}
     else{curRep={uid:cred.user.uid,name:'Rep',ini:'R',co:'',email:e,tel:'',id:''};}
@@ -615,7 +626,7 @@ window.doReg=async function(){
     loadDemoData();launch();toast('✅ Welcome to DoctRep, '+f+'! (Demo Mode)','ok');return;
   }
   try{
-    const cred=await createUserWithEmailAndPassword(auth,e,p);
+    const cred=await auth.createUserWithEmailAndPassword(e,p);
     curRep={uid:cred.user.uid,name:f+' '+l,ini:(f[0]+l[0]).toUpperCase(),co,email:e,tel:t,id:saId};
     await setDoc(doc(db,'reps',cred.user.uid),{name:f+' '+l,co,email:e,tel:t,saId,createdAt:serverTimestamp()});
     launch();toast('✅ Welcome to DoctRep, '+f+'!','ok');
@@ -1013,7 +1024,7 @@ window.logout=async function(){
   if(unsubDocs)unsubDocs();
   if(unsubSlots)unsubSlots();
   if(unsubNotifs)unsubNotifs();
-  if(!DEMO_MODE) try{await signOut(auth);}catch(e){}
+  try{await auth.signOut();}catch(e){}
   curRep=null;selDid=null;DOCS=[];SLOTS=[];NOTIFS=[];myIds=new Set();
   goSc('find');
   document.getElementById('bnav').style.display='none';
@@ -1026,18 +1037,16 @@ window.logout=async function(){
 };
 
 // ─── AUTH STATE WATCHER (survives page refresh, NOT fresh open) ───
-if(!DEMO_MODE){
-  onAuthStateChanged(auth, async user=>{
-    // Only auto-launch if splash screen is NOT showing (i.e. this is a page refresh)
-    const splashOn = document.getElementById('sc-splash').classList.contains('on');
-    if(user && !curRep && !splashOn){
-      const snap=await getDoc(doc(db,'reps',user.uid));
-      if(snap.exists()){const d=snap.data();curRep={uid:user.uid,name:d.name,ini:(d.name.split(' ').map(x=>x[0]).join('').substring(0,2)).toUpperCase(),co:d.co,email:d.email,tel:d.tel,id:d.saId};}
-      else{curRep={uid:user.uid,name:'Rep',ini:'R',co:'',email:user.email,tel:'',id:''};}
-      launch();
-    }
-  });
-}
+// Never auto-launch on fresh open — always show login screen
+auth.onAuthStateChanged(async function(user){
+  const splashOn = document.getElementById('sc-splash').classList.contains('on');
+  if(user && !curRep && !splashOn){
+    const snap=await db.collection('reps').doc(user.uid).get();
+    if(snap.exists){const d=snap.data();curRep={uid:user.uid,name:d.name,ini:(d.name.split(' ').map(x=>x[0]).join('').substring(0,2)).toUpperCase(),co:d.co,email:d.email,tel:d.tel,id:d.saId};}
+    else{curRep={uid:user.uid,name:'Rep',ini:'R',co:'',email:user.email,tel:'',id:''};}
+    launch();
+  }
+});
 
 // ─── TOAST ───
 function toast(msg,type){
@@ -1046,186 +1055,13 @@ function toast(msg,type){
   setTimeout(()=>{t.className='toast';},3400);
 }
 
-// ── EXPOSE ALL FUNCTIONS GLOBALLY ──
-window.authSw    = authSw;
-window.chkRco    = chkRco;
-window.chkMco    = chkMco;
-window.chkMr     = chkMr;
-window.togDrw    = togDrw;
-window.filDrw    = filDrw;
-window.goSc      = goSc;
-window.openMod   = openMod;
-window.closeMod  = closeMod;
-window.logout    = logout;
+// Functions are global — no window.X needed with compat SDK
 
-// ── ATTACH ALL BUTTON EVENTS DIRECTLY FROM MODULE (most reliable) ──
-(function attachAllEvents(){
-  // Small delay to ensure DOM is ready
-  setTimeout(function(){
-  // Hamburger button
-  var hmb = document.getElementById('hmb-btn');
-  if(hmb){ hmb.onclick = togDrw; console.log('HMB wired'); }
-
-  // Search hint row  
-  var srch = document.getElementById('srch-hint');
-  if(srch){ srch.onclick = togDrw; }
-
-  // Overlay
-  var ov = document.getElementById('ov');
-  if(ov){ ov.onclick = togDrw; }
-
-  // sdpill change
-  var chg = document.getElementById('sdpill-chg');
-  if(chg){ chg.onclick = togDrw; }
-
-  // Drawer search
-  var ds = document.getElementById('drw-srch');
-  if(ds){
-    ds.oninput = function(){ filDrw(this.value); };
-    ds.onkeyup = function(){ filDrw(this.value); };
-  }
-
-  // Auth buttons
-  var btnLogin = document.querySelector('#auth-login .btn-auth');
-  var btnReg   = document.querySelector('#auth-reg .btn-auth');
-  if(btnLogin){ btnLogin.onclick = function(){ doLogin(); }; }
-  if(btnReg){   btnReg.onclick   = function(){ doReg(); };   }
-
-  // Auth tabs
-  document.querySelectorAll('.atab').forEach(function(btn, i){
-    btn.onclick = function(){ authSw(i===0?'login':'register', btn); };
-  });
-
-  // Bottom nav
-  var bnFind  = document.getElementById('bn-find');
-  var bnMybk  = document.getElementById('bn-mybk');
-  var bnNotif = document.getElementById('bn-notif');
-  var bnProf  = document.getElementById('bn-prof');
-  if(bnFind)  bnFind.onclick  = function(){ goSc('find'); };
-  if(bnMybk)  bnMybk.onclick  = function(){ goSc('mybk'); };
-  if(bnNotif) bnNotif.onclick = function(){ goSc('notif'); };
-  if(bnProf)  bnProf.onclick  = function(){ goSc('prof'); };
-
-  // Modal close and submit
-  var mc  = document.querySelector('.btn-mc');
-  var sub = document.querySelector('.btn-sub');
-  if(mc)  mc.onclick  = function(){ closeMod(); };
-  if(sub) sub.onclick = function(){ submitReq(); };
-
-  // Company and reason toggles
-  var rco = document.getElementById('r-co');
-  var mco = document.getElementById('m-co');
-  var mr  = document.getElementById('m-reason');
-  if(rco) rco.onchange = function(){ chkRco(); };
-  if(mco) mco.onchange = function(){ chkMco(); };
-  if(mr)  mr.onchange  = function(){ chkMr(); };
-  }, 100); // end setTimeout
-})();
+// Events wired via onclick attributes — compat SDK makes all functions global
 </script>
 
-<script>
-// Wait for module to load then attach all button handlers via addEventListener
-document.addEventListener('DOMContentLoaded', function() {
-  // Wire up static buttons immediately and again after 500ms
-  function wireButtons(){
-    // Auth buttons (called below)
-    var btnLogin = document.querySelector('#auth-login .btn-auth');
-    var btnReg   = document.querySelector('#auth-reg .btn-auth');
-    if(btnLogin && !btnLogin._wired){ btnLogin.addEventListener('click', function(){ window.doLogin && window.doLogin(); }); btnLogin._wired=true; }
-    if(btnReg   && !btnReg._wired){   btnReg.addEventListener('click',   function(){ window.doReg   && window.doReg();   }); btnReg._wired=true; }
 
-    // Auth tab switching
-    document.querySelectorAll('.atab').forEach(function(btn, i) {
-      if(!btn._wired){ btn.addEventListener('click', function(){ window.authSw && window.authSw(i===0?'login':'register', btn); }); btn._wired=true; }
-    });
 
-    // Hamburger
-    var hmb = document.getElementById('hmb-btn');
-    if(hmb && !hmb._wired){ hmb.addEventListener('click', function(){ window.togDrw && window.togDrw(); }); hmb._wired=true; }
 
-    // Search row (open drawer)
-    var sr = document.getElementById('srch-hint');
-    if(sr && !sr._wired){ sr.addEventListener('click', function(){ window.togDrw && window.togDrw(); }); sr._wired=true; }
-
-    // Overlay close
-    var ov = document.getElementById('ov');
-    if(ov && !ov._wired){ ov.addEventListener('click', function(){ window.togDrw && window.togDrw(); }); ov._wired=true; }
-
-    // sdpill change
-    var chg = document.getElementById('sdpill-chg');
-    if(chg && !chg._wired){ chg.addEventListener('click', function(){ window.togDrw && window.togDrw(); }); chg._wired=true; }
-
-    // Drawer search INPUT — allow typing and filter
-    var ds = document.getElementById('drw-srch');
-    if(ds && !ds._wired){
-      ds.addEventListener('input', function(){ window.filDrw && window.filDrw(this.value); });
-      ds.addEventListener('keyup', function(){ window.filDrw && window.filDrw(this.value); });
-      ds._wired=true;
-    }
-
-    // Modal close buttons
-    var mc = document.querySelector('.btn-mc');
-    if(mc) mc.addEventListener('click', function(){ window.closeMod && window.closeMod(); });
-
-    // Submit request
-    var sub = document.querySelector('.btn-sub');
-    if(sub) sub.addEventListener('click', function(){ window.submitReq && window.submitReq(); });
-
-    // sdpill change button
-    var chg = document.querySelector('.sdpill-chg');
-    if(chg) chg.addEventListener('click', function(){ window.togDrw && window.togDrw(); });
-
-    // Company other toggle
-    var rco = document.getElementById('r-co');
-    if(rco) rco.addEventListener('change', function(){ window.chkRco && window.chkRco(); });
-    var mco = document.getElementById('m-co');
-    if(mco) mco.addEventListener('change', function(){ window.chkMco && window.chkMco(); });
-    var mr  = document.getElementById('m-reason');
-    if(mr)  mr.addEventListener('change',  function(){ window.chkMr  && window.chkMr();  });
-
-    // Bottom nav
-    document.getElementById('bn-find')  && document.getElementById('bn-find').addEventListener('click',  function(){ window.goSc && window.goSc('find'); });
-    document.getElementById('bn-mybk')  && document.getElementById('bn-mybk').addEventListener('click',  function(){ window.goSc && window.goSc('mybk'); });
-    document.getElementById('bn-notif') && document.getElementById('bn-notif').addEventListener('click',  function(){ window.goSc && window.goSc('notif'); });
-    document.getElementById('bn-prof')  && document.getElementById('bn-prof').addEventListener('click',   function(){ window.goSc && window.goSc('prof'); });
-
-    console.log('DoctRep bridge loaded');
-  }
-  wireButtons();
-  setTimeout(wireButtons, 500);
-});
-
-// pickDoc MUST be global for dynamically rendered drawer items
-// This is a safe wrapper — it does NOT call itself
-var _pickDocCalled = false;
-function pickDoc(id) {
-  if(window._pickDocModule) {
-    window._pickDocModule(id);
-  } else {
-    setTimeout(function(){ pickDoc(id); }, 200);
-  }
-}
-</script>
-
-<script>
-// ── BRIDGE: makes module functions available to onclick attributes ──
-function doLogin(){  window.doLogin  && window.doLogin();  }
-function doReg(){    window.doReg    && window.doReg();    }
-function authSw(t,b){window.authSw  && window.authSw(t,b);}
-function chkRco(){   window.chkRco  && window.chkRco();   }
-function chkMco(){   window.chkMco  && window.chkMco();   }
-function chkMr(){    window.chkMr   && window.chkMr();    }
-function togDrw(){   window.togDrw  && window.togDrw();   }
-/* filDrw handled by delegation */
-function pickDoc(id){window.pickDoc && window.pickDoc(id);}
-function goSc(s){    window.goSc    && window.goSc(s);    }
-function openMod(id){window.openMod && window.openMod(id);}
-function closeMod(){ window.closeMod&& window.closeMod();  }
-function submitReq(){window.submitReq&&window.submitReq(); }
-function cxBk(id){   window.cxBk   && window.cxBk(id);   }
-function logout(){   window.logout  && window.logout();    }
-function saveProf(){  window.saveProf&& window.saveProf();  }
-function togglePw(i,b){window.togglePw&&window.togglePw(i,b);}
-</script>
 </body>
 </html>
