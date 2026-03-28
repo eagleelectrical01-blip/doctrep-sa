@@ -479,12 +479,12 @@ import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc,
 //  Replace every line that says "YOUR_..."
 // ════════════════════════════════════════════════
 const firebaseConfig = {
-  apiKey: "AIzaSyBESylVeQPSsMgd0CMy3fb-f4xQwvZvtxM",
-  authDomain: "fix-your-home-book-an-ar-ad6bc.firebaseapp.com",
-  projectId: "fix-your-home-book-an-ar-ad6bc",
-  storageBucket: "fix-your-home-book-an-ar-ad6bc.firebasestorage.app",
-  messagingSenderId: "985512922874",
-  appId: "1:985512922874:web:3cc4610f84e01bfb7d4343"
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
 };
 // ════════════════════════════════════════════════
 
@@ -944,6 +944,37 @@ function toast(msg,type){
   t.textContent=msg;t.className='toast '+type+' on';
   setTimeout(()=>{t.className='toast';},3400);
 }
+
+// ── EXPOSE ALL FUNCTIONS GLOBALLY (required for type="module") ──
+window.authSw    = authSw;
+window.chkRco    = chkRco;
+window.chkMco    = chkMco;
+window.chkMr     = chkMr;
+window.togDrw    = togDrw;
+window.filDrw    = filDrw;
+window.goSc      = goSc;
+window.openMod   = openMod;
+window.closeMod  = closeMod;
+window.logout    = logout;
+</script>
+
+<script>
+// Bridge for module functions — onclick attributes need these in global scope
+function doLogin(){ window.doLogin && window.doLogin(); }
+function doReg(){   window.doReg   && window.doReg();   }
+function authSw(t,b){ window.authSw && window.authSw(t,b); }
+function chkRco(){  window.chkRco  && window.chkRco();  }
+function chkMco(){  window.chkMco  && window.chkMco();  }
+function chkMr(){   window.chkMr   && window.chkMr();   }
+function togDrw(){  window.togDrw  && window.togDrw();  }
+function filDrw(v){ window.filDrw  && window.filDrw(v); }
+function pickDoc(id){ window.pickDoc && window.pickDoc(id); }
+function goSc(s){   window.goSc    && window.goSc(s);   }
+function openMod(id){ window.openMod && window.openMod(id); }
+function closeMod(){ window.closeMod && window.closeMod(); }
+function submitReq(){ window.submitReq && window.submitReq(); }
+function cxBk(id){ window.cxBk && window.cxBk(id); }
+function logout(){ window.logout && window.logout(); }
 </script>
 </body>
 </html>
