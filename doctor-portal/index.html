@@ -585,14 +585,22 @@ function approveSlot(id){
   var s=SLOTS.find(function(x){return x.id===id;});
   if(!s)return;
   db.collection("slots").doc(id).update({status:"booked"}).then(function(){
+    // Notification for REP (rep-side message)
     if(s.repUid){
       db.collection("notifications").add({
-        repUid:s.repUid,doctorId:curUser.uid,
+        repUid:s.repUid,
         msg:"APPROVED: Your "+s.time+" appointment with "+docProf.name+" on "+fmtDate(s.date)+" is confirmed!",
         type:"ok",time:nowT(),unread:true,
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
     }
+    // Notification for DOCTOR (doctor-side message)
+    db.collection("notifications").add({
+      doctorId:curUser.uid,
+      msg:"APPROVED: Appointment with "+s.rep+" ("+s.co+") on "+fmtDate(s.date)+" at "+s.time+" confirmed.",
+      type:"ok",time:nowT(),unread:true,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
     toast("Approved - "+s.rep+" confirmed for "+s.time,"ok");
     if(document.getElementById("page-requests").classList.contains("active"))renderRequests();
   });
@@ -621,8 +629,24 @@ function openConfirm(type,slotId){
     }else{
       db.collection("slots").doc(slotId).update({status:"open",rep:null,repUid:null,co:null,prod:null,tel:null,reason:null}).then(function(){
         if(s&&s.repUid){
-          var msg=type==="decline"?"DECLINED: Your request for "+s.time+" on "+fmtDate(s.date)+" with "+docProf.name+" was declined.":"CANCELLED: Your "+s.time+" appointment with "+docProf.name+" on "+fmtDate(s.date)+" was cancelled.";
-          db.collection("notifications").add({repUid:s.repUid,doctorId:curUser.uid,msg:msg,type:type==="decline"?"err":"warn",time:nowT(),unread:true,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+          // Notification for REP (rep-side message)
+          var repMsg=type==="decline"
+            ?"DECLINED: Your request for "+s.time+" on "+fmtDate(s.date)+" with "+docProf.name+" was declined."
+            :"CANCELLED: Your "+s.time+" appointment with "+docProf.name+" on "+fmtDate(s.date)+" was cancelled.";
+          db.collection("notifications").add({
+            repUid:s.repUid,
+            msg:repMsg,type:type==="decline"?"err":"warn",time:nowT(),unread:true,
+            createdAt:firebase.firestore.FieldValue.serverTimestamp()
+          });
+          // Notification for DOCTOR (doctor-side message)
+          var docMsg=type==="decline"
+            ?"DECLINED: Request from "+s.rep+" ("+s.co+") for "+s.time+" on "+fmtDate(s.date)+" was declined."
+            :"CANCELLED: "+s.rep+" ("+s.co+") cancelled their "+s.time+" appointment on "+fmtDate(s.date)+".";
+          db.collection("notifications").add({
+            doctorId:curUser.uid,
+            msg:docMsg,type:type==="decline"?"err":"warn",time:nowT(),unread:true,
+            createdAt:firebase.firestore.FieldValue.serverTimestamp()
+          });
         }
         toast(type==="decline"?"Declined":"Cancelled","warn");
         if(document.getElementById("page-requests").classList.contains("active"))renderRequests();
