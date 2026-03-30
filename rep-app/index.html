@@ -891,6 +891,12 @@ function buildDatePills() {
 // ══════════════════════════════════════
 //  RENDER SLOTS
 // ══════════════════════════════════════
+function isExpired(date, time) {
+  // Returns true if slot date+time is in the past
+  var slotDT = new Date(date + 'T' + time + ':00');
+  return slotDT < new Date();
+}
+
 function renderSlots() {
   if (!selDocId) return;
   var doc = DOCS.find(function(d) { return d.id === selDocId; });
@@ -906,9 +912,14 @@ function renderSlots() {
 
   var html = '';
   slots.forEach(function(s) {
-    var isMine = mySlots.has(s.id);
+    var isMine   = mySlots.has(s.id);
+    var expired  = isExpired(s.date, s.time);
     var cls, dotCls, label, clickable;
-    if (isMine && s.status === 'booked') {
+
+    if (expired) {
+      // Expired — regardless of status
+      cls = 'booked'; dotCls = 'booked'; label = 'EXPIRED'; clickable = false;
+    } else if (isMine && s.status === 'booked') {
       cls = 'mine'; dotCls = 'booked'; label = 'APPROVED ✅'; clickable = false;
     } else if (isMine) {
       cls = 'mine'; dotCls = 'pending'; label = 'MY REQUEST'; clickable = false;
@@ -927,10 +938,19 @@ function renderSlots() {
     html += '<div class="slot-doc-name">' + (doc ? doc.name : '—') + '</div>';
     html += '<div class="slot-doc-type">' + (doc ? doc.type : '') + '</div>';
     if (s.note) html += '<div class="slot-note">📌 ' + s.note + '</div>';
+    // Delete button for expired mine slots
+    if (expired && isMine) {
+      html += '<button data-id="' + s.id + '" class="slot-del-exp" style="margin-top:5px;padding:4px 10px;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:6px;color:var(--red);font-size:.7rem;cursor:pointer;">🗑 Delete</button>';
+    }
     html += '</div>';
     html += '<div class="slot-status">';
-    html += '<div class="status-dot ' + dotCls + '"></div>';
-    html += '<div class="status-label ' + dotCls + '">' + label + '</div>';
+    if (expired) {
+      html += '<div class="status-dot" style="background:var(--dim);"></div>';
+      html += '<div class="status-label" style="color:var(--dim);">EXPIRED</div>';
+    } else {
+      html += '<div class="status-dot ' + dotCls + '"></div>';
+      html += '<div class="status-label ' + dotCls + '">' + label + '</div>';
+    }
     html += '</div></div>';
   });
   container.innerHTML = html;
@@ -938,6 +958,25 @@ function renderSlots() {
   // Wire open slot clicks
   container.querySelectorAll('.slot-card.open').forEach(function(card) {
     card.onclick = function() { openBookingModal(this.dataset.slotid); };
+  });
+
+  // Wire delete buttons on expired mine slots
+  container.querySelectorAll('.slot-del-exp').forEach(function(btn) {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      var sid = this.dataset.id;
+      var s = SLOTS.find(function(x) { return x.id === sid; });
+      if (!s) return;
+      if (!confirm('Delete this expired booking?')) return;
+      db.collection('slots').doc(sid).update({
+        status: 'open', rep: null, repUid: null, co: null, prod: null, tel: null, reason: null
+      }).then(function() {
+        mySlots.delete(sid);
+        renderSlots();
+        updateBadges();
+        toast('Expired booking deleted.', 'warn');
+      });
+    };
   });
 }
 
