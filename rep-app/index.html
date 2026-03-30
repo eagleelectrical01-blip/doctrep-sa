@@ -729,6 +729,7 @@ function subscribeToData() {
         type:  data.type || data.specialty || 'GP',
         place: data.place || data.practiceName || '',
         city:  data.city || '',
+        tel:   data.tel || data.phone || data.contactNumber || '',
         icon:  iconFor(data.type || '')
       };
     });
@@ -811,8 +812,8 @@ function renderDrawer(q) {
   if (!filtered.length) html = '<div class="no-docs">No doctors found.</div>';
   document.getElementById('drawer-body').innerHTML = html;
 
-  // Wire up doctor item clicks
-  document.querySelectorAll('.doc-item').forEach(function(btn) {
+  // Wire up doctor item clicks (now on inner button)
+  document.querySelectorAll('.doc-item button[data-id]').forEach(function(btn) {
     btn.onclick = function() {
       selectDoc(this.dataset.id);
     };
@@ -829,12 +830,17 @@ function section(title, docs) {
       var openCount = SLOTS.filter(function(s) { return s.did === d.id && s.status === 'open'; }).length;
       var slotLabel = openCount > 0 ? openCount + ' open' : '—';
       var slotClass = openCount > 0 ? '' : 'empty';
-      html += '<button class="doc-item' + (d.id === selDocId ? ' selected' : '') + '" data-id="' + d.id + '">';
+      html += '<div class="doc-item' + (d.id === selDocId ? ' selected' : '') + '" style="display:flex;flex-direction:column;gap:0;">';
+      html += '<button data-id="' + d.id + '" style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border:none;background:none;width:100%;text-align:left;">';
       html += '<div class="doc-icon">' + d.icon + '</div>';
       html += '<div style="flex:1;"><div class="doc-name">' + d.name + '</div>';
       html += '<div class="doc-place">' + d.place + (d.city ? ' · ' + d.city : '') + '</div></div>';
       html += '<div class="doc-slots ' + slotClass + '">' + slotLabel + '</div>';
       html += '</button>';
+      if (d.tel) {
+        html += '<a href="tel:' + d.tel + '" style="display:flex;align-items:center;gap:6px;padding:5px 14px 9px 50px;font-size:.7rem;color:var(--teal);text-decoration:none;">📞 ' + d.tel + '</a>';
+      }
+      html += '</div>';
     });
   }
   html += '</div>';
@@ -902,7 +908,9 @@ function renderSlots() {
   slots.forEach(function(s) {
     var isMine = mySlots.has(s.id);
     var cls, dotCls, label, clickable;
-    if (isMine) {
+    if (isMine && s.status === 'booked') {
+      cls = 'mine'; dotCls = 'booked'; label = 'APPROVED ✅'; clickable = false;
+    } else if (isMine) {
       cls = 'mine'; dotCls = 'pending'; label = 'MY REQUEST'; clickable = false;
     } else if (s.status === 'open') {
       cls = 'open'; dotCls = 'open'; label = 'OPEN'; clickable = true;
@@ -1037,12 +1045,25 @@ function renderMyBookings() {
     html += '<div class="bk-meta">' + fmtDate(s.date) + ' · ' + (s.co || '') + '</div></div></div>';
     html += '<div class="bk-reason">📋 ' + (s.reason || 'Visit') + '<br>🧪 ' + (s.prod || '—') + '</div>';
     html += '<div class="bk-status ' + stCls + '">' + stLabel + '</div>';
-    html += '<button class="btn-cancel-bk" data-id="' + s.id + '">❌ Cancel This Booking</button>';
+    if (s.status === 'pending') {
+      html += '<div style="display:flex;gap:8px;">';
+      html += '<button class="btn-edit-bk" data-id="' + s.id + '" style="flex:1;padding:8px;background:rgba(14,184,190,.12);border:1.5px solid rgba(14,184,190,.3);border-radius:8px;color:var(--teal);font-family:\'DM Sans\',sans-serif;font-size:.78rem;cursor:pointer;">✏️ Edit Request</button>';
+      html += '<button class="btn-cancel-bk" data-id="' + s.id + '" style="flex:1;padding:8px;background:transparent;border:1.5px solid rgba(248,81,73,.3);border-radius:8px;color:var(--red);font-family:\'DM Sans\',sans-serif;font-size:.78rem;cursor:pointer;">❌ Cancel</button>';
+      html += '</div>';
+    } else if (s.status !== 'booked') {
+      html += '<button class="btn-cancel-bk" data-id="' + s.id + '">❌ Cancel This Booking</button>';
+    }
     html += '</div>';
   });
   container.innerHTML = html;
   container.querySelectorAll('.btn-cancel-bk').forEach(function(btn) {
     btn.onclick = function() { cancelBooking(this.dataset.id); };
+  });
+  container.querySelectorAll('.btn-edit-bk').forEach(function(btn) {
+    btn.onclick = function() {
+      var s = SLOTS.find(function(x) { return x.id === btn.dataset.id; });
+      if (s) { selDocId = s.did; openBookingModal(s.id); }
+    };
   });
 }
 
@@ -1080,12 +1101,25 @@ function renderNotifications() {
   var colors = { ok: 'var(--green)', err: 'var(--red)', info: 'var(--teal)', warn: 'var(--amber)' };
   var html = '';
   NOTIFS.forEach(function(n) {
-    html += '<div class="notif-card' + (n.unread ? ' unread' : '') + '">';
+    html += '<div class="notif-card' + (n.unread ? ' unread' : '') + '" style="position:relative;">';
     html += '<div class="notif-dot" style="background:' + (colors[n.type] || 'var(--mu)') + '"></div>';
-    html += '<div><div class="notif-msg">' + n.msg + '</div>';
-    html += '<div class="notif-time">' + (n.time || '') + '</div></div></div>';
+    html += '<div style="flex:1;"><div class="notif-msg">' + n.msg + '</div>';
+    html += '<div class="notif-time">' + (n.time || '') + '</div></div>';
+    html += '<button data-id="' + n.id + '" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:.9rem;padding:4px;flex-shrink:0;" title="Delete">🗑</button>';
+    html += '</div>';
   });
   container.innerHTML = html;
+  // Wire delete buttons
+  container.querySelectorAll('button[data-id]').forEach(function(btn) {
+    btn.onclick = function() {
+      var nid = this.dataset.id;
+      db.collection('notifications').doc(nid).delete().then(function() {
+        NOTIFS = NOTIFS.filter(function(n) { return n.id !== nid; });
+        renderNotifications();
+        updateBadges();
+      });
+    };
+  });
 }
 
 // ══════════════════════════════════════
