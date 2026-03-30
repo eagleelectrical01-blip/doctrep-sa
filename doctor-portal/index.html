@@ -309,6 +309,15 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
       <div class="cal-grid" id="cal-hdrs"></div>
       <div class="cal-grid" id="cal-grid" style="margin-top:7px;"></div>
     </div>
+    <!-- DAY DETAIL MODAL -->
+    <div class="modal-bg" id="day-modal" style="display:none;align-items:center;justify-content:center;">
+      <div class="modal-box" style="max-width:480px;max-height:80vh;overflow-y:auto;">
+        <h3 id="day-modal-title">Appointments</h3>
+        <p id="day-modal-date" style="font-size:.78rem;color:var(--muted);margin-bottom:14px;"></p>
+        <div id="day-modal-list"></div>
+        <div class="modal-acts" style="margin-top:14px;"><button class="btn-mok" id="day-modal-close" style="width:100%;text-align:center;">Close</button></div>
+      </div>
+    </div>
     <div class="page" id="page-notif"><div class="panel"><div id="notif-list"></div></div></div>
   </div>
 </div>
@@ -635,29 +644,87 @@ function renderRequests(){
   el.querySelectorAll(".btn-full-no").forEach(function(b){b.onclick=function(){openConfirm("decline",this.dataset.id);};});
 }
 
-document.getElementById("cal-prev").onclick=function(){calOffset-=7;renderCalendar();};
-document.getElementById("cal-next").onclick=function(){calOffset+=7;renderCalendar();};
+document.getElementById("cal-prev").onclick=function(){calOffset--;renderCalendar();};
+document.getElementById("cal-next").onclick=function(){calOffset++;renderCalendar();};
+document.getElementById("day-modal-close").onclick=function(){document.getElementById("day-modal").style.display="none";};
+
 function renderCalendar(){
   var hdrs=document.getElementById("cal-hdrs");
   var grid=document.getElementById("cal-grid");
   var days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   hdrs.innerHTML=days.map(function(d){return'<div class="cal-dh">'+d+"</div>";}).join("");
-  var base=new Date();base.setDate(base.getDate()+calOffset);
-  var endD=new Date(base);endD.setDate(base.getDate()+6);
-  document.getElementById("cal-label").textContent=base.toLocaleDateString("en-ZA",{day:"numeric",month:"short"})+" - "+endD.toLocaleDateString("en-ZA",{day:"numeric",month:"short",year:"numeric"});
+
+  // Show full month based on calOffset (months from today)
+  var now=new Date();
+  var viewDate=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
+  var yr=viewDate.getFullYear();
+  var mo=viewDate.getMonth();
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  document.getElementById("cal-label").textContent=months[mo]+" "+yr;
+
+  // First day of month and total days
+  var firstDay=new Date(yr,mo,1).getDay(); // 0=Sun
+  var daysInMonth=new Date(yr,mo+1,0).getDate();
+
   grid.innerHTML="";
-  for(var i=0;i<7;i++){
-    var d=new Date(base);d.setDate(base.getDate()+i);
+
+  // Empty cells before first day
+  for(var e=0;e<firstDay;e++){
+    var empty=document.createElement("div");
+    empty.className="cal-cell";
+    empty.style.background="transparent";
+    empty.style.border="1px solid transparent";
+    grid.appendChild(empty);
+  }
+
+  // Day cells
+  for(var day=1;day<=daysInMonth;day++){
+    var d=new Date(yr,mo,day);
     var iso=d.toISOString().split("T")[0];
     var ds=SLOTS.filter(function(s){return s.date===iso;});
     var cell=document.createElement("div");
     cell.className="cal-cell"+(iso===TODAY?" today":"");
-    var html='<div class="cal-date">'+d.getDate()+"</div>";
-    if(ds.length){ds.forEach(function(s){html+='<span class="cal-chip cc-'+s.status+'">'+s.time+(s.rep?" - "+s.rep.split(" ")[0]:"")+"</span>";});}
-    else{html+='<div style="font-size:.66rem;color:var(--light);">No slots</div>';}
+    cell.style.cursor="pointer";
+    var html='<div class="cal-date" style="font-weight:700;color:var(--navy);">'+day+"</div>";
+    if(ds.length){
+      ds.slice(0,3).forEach(function(s){
+        html+='<span class="cal-chip cc-'+s.status+'">'+s.time+(s.rep?" · "+s.rep.split(" ")[0]:"")+"</span>";
+      });
+      if(ds.length>3)html+='<div style="font-size:.6rem;color:var(--muted);">+'+( ds.length-3)+" more</div>";
+    } else {
+      html+='<div style="font-size:.6rem;color:var(--light);margin-top:2px;">—</div>';
+    }
     cell.innerHTML=html;
+    // Click to open day detail
+    (function(isoDate,daySlots,dayNum){
+      cell.onclick=function(){openDayModal(isoDate,daySlots,dayNum,mo,yr);};
+    })(iso,ds,day);
     grid.appendChild(cell);
   }
+}
+
+function openDayModal(iso,slots,day,mo,yr){
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var d=new Date(yr,mo,day);
+  document.getElementById("day-modal-title").textContent=days[d.getDay()]+" "+day+" "+months[mo]+" "+yr;
+  document.getElementById("day-modal-date").textContent=slots.length+" slot"+(slots.length!==1?"s":"")+" scheduled";
+  var el=document.getElementById("day-modal-list");
+  if(!slots.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--light);font-size:.84rem;">No slots on this day.</div>';
+  } else {
+    el.innerHTML=slots.map(function(s){
+      var stCls=s.status==="open"?"b-open":s.status==="booked"?"b-conf":"b-pend";
+      var stLabel=s.status==="open"?"Open":s.status==="booked"?"Confirmed":"Pending";
+      return '<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">'+
+        '<div style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:700;min-width:44px;color:var(--navy);">'+s.time+'</div>'+
+        '<div style="flex:1;"><div style="font-size:.82rem;font-weight:600;">'+(s.rep||"Open slot")+'</div>'+
+        '<div style="font-size:.72rem;color:var(--muted);">'+(s.co||"")+(s.reason?" · "+s.reason:"")+'</div></div>'+
+        '<span class="badge '+stCls+'">'+stLabel+'</span>'+
+        '</div>';
+    }).join("");
+  }
+  document.getElementById("day-modal").style.display="flex";
 }
 
 function renderNotifs(){
@@ -669,7 +736,28 @@ function renderNotifs(){
   var el=document.getElementById("notif-list");
   if(!NOTIFS.length){el.innerHTML='<div class="empty"><div class="ei">&#128276;</div><div class="et">No notifications yet.</div></div>';return;}
   var colors={ok:"var(--open)",err:"var(--red)",info:"var(--tl)",warn:"var(--amber)"};
-  el.innerHTML=NOTIFS.map(function(n){return'<div class="notif-item'+(n.unread?" unread":"")+'"><div class="notif-dot" style="background:'+(colors[n.type]||"var(--light)")+'"></div><div><div class="notif-msg">'+n.msg+'</div><div class="notif-time">'+(n.time||"")+"</div></div></div>";}).join("");
+  // Only show notifications that have doctorId = this doctor (filter out rep-only notifications)
+  var docNotifs=NOTIFS.filter(function(n){return n.doctorId===curUser.uid;});
+  if(!docNotifs.length){el.innerHTML='<div class="empty"><div class="ei">&#128276;</div><div class="et">No notifications yet.</div></div>';return;}
+  el.innerHTML=docNotifs.map(function(n){
+    return '<div class="notif-item'+(n.unread?" unread":"")+'">'+
+      '<div class="notif-dot" style="background:'+(colors[n.type]||"var(--light)")+'"></div>'+
+      '<div style="flex:1;"><div class="notif-msg">'+n.msg+'</div>'+
+      '<div class="notif-time">'+(n.time||"")+"</div></div>"+
+      '<button data-nid="'+n.id+'" style="background:none;border:none;color:var(--light);cursor:pointer;font-size:.85rem;padding:4px;flex-shrink:0;" title="Delete">&#128465;</button>'+
+      "</div>";
+  }).join("");
+  // Wire delete buttons
+  el.querySelectorAll("button[data-nid]").forEach(function(btn){
+    btn.onclick=function(){
+      var nid=this.dataset.nid;
+      db.collection("notifications").doc(nid).delete().then(function(){
+        NOTIFS=NOTIFS.filter(function(n){return n.id!==nid;});
+        renderNotifs();
+        updateBadges();
+      });
+    };
+  });
 }
 
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){});}
