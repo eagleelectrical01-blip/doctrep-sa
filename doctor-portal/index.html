@@ -223,6 +223,7 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
               <option>Free State</option><option>North West</option><option>Northern Cape</option>
             </select></div>
         </div>
+        <div class="field"><label>Contact / Phone Number</label><input type="tel" id="reg-tel" placeholder="031 000 0000"></div>
         <div class="field"><label>Email Address</label><input type="email" id="reg-email" placeholder="doctor@practice.co.za"></div>
         <div class="field"><label>Password (min 6 characters)</label><input type="password" id="reg-pw" placeholder="Create a password"></div>
         <button class="btn-auth" id="btn-reg">Create My DoctRep Account</button>
@@ -390,7 +391,8 @@ document.getElementById("btn-reg").onclick=function(){
   auth.createUserWithEmailAndPassword(email,pw)
     .then(function(c){
       curUser=c.user;
-      docProf={uid:curUser.uid,first:first,last:last,name:"Dr. "+first+" "+last,type:type,place:place,city:city,province:prov,email:email};
+      var tel=document.getElementById("reg-tel").value.trim();
+      docProf={uid:curUser.uid,first:first,last:last,name:"Dr. "+first+" "+last,type:type,place:place,city:city,province:prov,email:email,tel:tel};
       db.collection("doctors").doc(curUser.uid).set(Object.assign({},docProf,{createdAt:firebase.firestore.FieldValue.serverTimestamp()}))
         .then(function(){launchApp();toast("Welcome to DoctRep SA, Dr. "+last+"!","ok");});
     })
