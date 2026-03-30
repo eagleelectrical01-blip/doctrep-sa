@@ -2,1220 +2,677 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>DoctRep SA — Rep App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoctRep SA - Doctor Portal</title>
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-
-<!-- Firebase MUST load first -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <style>
-:root {
-  --teal:#0EB8BE; --td:#0D7377; --tdd:#085255;
-  --bg:#0d1117; --bg2:#161b22; --bg3:#1c2333;
-  --brd:rgba(255,255,255,.08); --brd2:rgba(255,255,255,.15);
-  --wh:#f0f6fc; --mu:#8b949e; --dim:#484f58;
-  --green:#3fb950; --red:#f85149; --amber:#d29922; --blue:#58a6ff;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--wh);min-height:100vh;}
-
-/* ── SCREENS ── */
-.screen{display:none;min-height:100vh;flex-direction:column;}
-.screen.active{display:flex;}
-
-/* ── AUTH SCREEN ── */
-#auth-screen{background:linear-gradient(160deg,#085255,#0d1117 50%);
-  align-items:center;justify-content:center;padding:24px;}
-.auth-box{width:100%;max-width:360px;}
-.auth-logo{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;
-  text-align:center;margin-bottom:4px;}
-.auth-logo span{color:var(--teal);}
-.auth-tag{font-size:.72rem;color:var(--mu);text-align:center;letter-spacing:2px;
-  text-transform:uppercase;margin-bottom:32px;}
-.auth-tabs{display:flex;background:rgba(255,255,255,.06);border-radius:10px;
-  padding:3px;margin-bottom:20px;}
-.auth-tab{flex:1;padding:10px;border:none;background:transparent;
-  color:rgba(255,255,255,.4);font-family:'DM Sans',sans-serif;font-size:.85rem;
-  border-radius:8px;cursor:pointer;transition:all .2s;}
-.auth-tab.active{background:var(--td);color:var(--wh);}
+:root{--teal:#0D7377;--tl:#14A9AE;--td:#085255;--txl:#e8f7f7;--navy:#0f1e2d;--navy2:#1a2f42;--cream:#f8f9fb;--border:#e2e8f0;--border2:#cbd5e1;--slate:#334155;--muted:#64748b;--light:#94a3b8;--open:#059669;--ob:#ecfdf5;--red:#dc2626;--rb:#fef2f2;--amber:#d97706;--ab:#fffbeb;--blue:#2563eb;--bb:#eff6ff;--shadow:0 1px 3px rgba(15,30,45,.08);--shadowlg:0 10px 40px rgba(15,30,45,.14);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--slate);min-height:100vh;font-size:14px;}
+#auth-screen{min-height:100vh;display:flex;background:var(--navy);}
+.auth-left{flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 70px;}
+.auth-logo{font-family:"Syne",sans-serif;font-size:2rem;font-weight:800;color:#fff;margin-bottom:8px;}
+.auth-logo span{color:var(--tl);}
+.auth-headline{font-family:"Syne",sans-serif;font-size:2rem;font-weight:700;color:#fff;line-height:1.2;margin-bottom:16px;}
+.auth-headline em{font-style:normal;color:var(--tl);}
+.auth-desc{font-size:.9rem;color:rgba(255,255,255,.5);max-width:360px;line-height:1.7;}
+.auth-right{width:460px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:40px 44px;background:rgba(255,255,255,.03);border-left:1px solid rgba(255,255,255,.07);}
+.auth-box{width:100%;}
+.auth-tabs{display:flex;background:rgba(255,255,255,.06);border-radius:10px;padding:4px;margin-bottom:24px;}
+.auth-tab{flex:1;font-size:.84rem;font-weight:500;padding:9px;border-radius:7px;border:none;cursor:pointer;color:rgba(255,255,255,.4);background:transparent;}
+.auth-tab.active{background:var(--teal);color:#fff;}
 .auth-panel{display:none;}
 .auth-panel.active{display:block;}
-.field{margin-bottom:12px;}
-.field label{display:block;font-size:.68rem;font-weight:600;color:var(--mu);
-  text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-.field input,.field select{width:100%;padding:11px 13px;
-  background:rgba(255,255,255,.06);border:1.5px solid var(--brd2);
-  border-radius:9px;color:var(--wh);font-family:'DM Sans',sans-serif;
-  font-size:.88rem;outline:none;}
-.field input::placeholder{color:rgba(255,255,255,.25);}
-.field input:focus,.field select:focus{border-color:var(--teal);}
-.field select option{background:#1c2333;}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.pw-wrap{position:relative;}
-.pw-wrap input{padding-right:42px;}
-.pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);
-  background:none;border:none;color:var(--mu);cursor:pointer;font-size:.95rem;}
-.btn-primary{width:100%;padding:13px;background:linear-gradient(135deg,var(--td),var(--teal));
-  border:none;border-radius:9px;color:var(--wh);font-family:'Syne',sans-serif;
-  font-size:.9rem;font-weight:700;cursor:pointer;margin-top:4px;}
-.auth-note{font-size:.72rem;color:var(--dim);text-align:center;margin-top:12px;}
-.auth-note a{color:var(--teal);cursor:pointer;}
-.auth-err{background:rgba(248,81,73,.15);border:1px solid var(--red);
-  color:var(--red);border-radius:8px;padding:9px 13px;font-size:.8rem;
-  margin-bottom:12px;display:none;}
-#sub-co-field{display:none;}
-
-/* ── APP HEADER ── */
-.app-header{background:linear-gradient(180deg,rgba(13,115,119,.95),rgba(13,115,119,.7));
-  padding:12px 16px;flex-shrink:0;position:relative;z-index:20;}
-.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.app-logo{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;}
-.app-logo span{color:rgba(255,255,255,.6);}
-.hmb-btn{width:36px;height:36px;background:rgba(255,255,255,.1);
-  border:1px solid rgba(255,255,255,.15);border-radius:8px;
-  display:flex;flex-direction:column;justify-content:center;
-  align-items:center;gap:4px;cursor:pointer;border:none;}
-.hmb-btn span{display:block;width:16px;height:2px;background:var(--wh);border-radius:2px;}
-.search-hint{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.1);
-  border-radius:9px;padding:9px 13px;font-size:.78rem;color:rgba(255,255,255,.4);cursor:pointer;}
-.selected-doc{display:none;background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.1);
-  border-radius:8px;padding:7px 12px;margin-top:8px;
-  flex-direction:row;align-items:center;gap:8px;}
-.selected-doc.show{display:flex;}
-.sel-name{font-size:.82rem;font-weight:600;flex:1;}
-.sel-change{font-size:.7rem;color:var(--teal);cursor:pointer;}
-
-/* ── OVERLAY + DRAWER ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:80;display:none;}
-.overlay.open{display:block;}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:290px;background:var(--bg2);
-  z-index:90;transform:translateX(-100%);transition:transform .3s ease;
-  display:flex;flex-direction:column;}
-.drawer.open{transform:translateX(0);}
-.drawer-header{background:linear-gradient(135deg,var(--tdd),var(--td));padding:48px 16px 16px;}
-.drawer-header h3{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;}
-.drawer-header p{font-size:.7rem;color:rgba(255,255,255,.45);margin-top:2px;}
-.drawer-search{padding:10px 13px;border-bottom:1px solid var(--brd);}
-.drawer-search input{width:100%;padding:8px 11px;background:var(--bg3);
-  border:1px solid var(--brd2);border-radius:8px;color:var(--wh);
-  font-family:'DM Sans',sans-serif;font-size:.8rem;outline:none;}
-.drawer-search input::placeholder{color:var(--dim);}
-.drawer-body{flex:1;overflow-y:auto;}
-.drawer-section{padding:8px 0;border-bottom:1px solid var(--brd);}
-.drawer-section-title{font-size:.62rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:1px;color:var(--teal);padding:6px 14px 4px;}
-.doc-item{display:flex;align-items:center;gap:9px;padding:9px 14px;
-  cursor:pointer;border:none;background:none;width:100%;text-align:left;}
-.doc-item:hover{background:rgba(255,255,255,.04);}
-.doc-item.selected{background:rgba(14,184,190,.1);}
-.doc-icon{width:30px;height:30px;border-radius:7px;background:rgba(14,184,190,.15);
-  display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;}
-.doc-name{font-size:.82rem;font-weight:500;color:var(--wh);}
-.doc-place{font-size:.66rem;color:var(--mu);margin-top:1px;}
-.doc-slots{font-size:.65rem;font-weight:700;background:var(--td);
-  color:var(--wh);border-radius:6px;padding:2px 6px;margin-left:auto;flex-shrink:0;}
-.doc-slots.empty{background:var(--bg3);color:var(--dim);}
-.no-docs{padding:20px 14px;font-size:.78rem;color:var(--dim);}
-
-/* ── MAIN CONTENT ── */
-.app-content{flex:1;overflow-y:auto;padding:14px;}
-.empty-state{text-align:center;padding:48px 20px;color:var(--dim);}
-.empty-state .ei{font-size:2.2rem;margin-bottom:10px;}
-.empty-state .et{font-size:.82rem;line-height:1.6;}
-
-/* ── DATE PILLS ── */
-.date-pills{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
-.date-pills::-webkit-scrollbar{height:0;}
-.dpill{flex-shrink:0;background:var(--bg3);border:1.5px solid var(--brd2);
-  border-radius:9px;padding:7px 12px;text-align:center;cursor:pointer;}
-.dpill.active{background:var(--td);border-color:var(--teal);}
-.dpill .day{font-size:.6rem;color:var(--mu);text-transform:uppercase;}
-.dpill.active .day{color:rgba(255,255,255,.65);}
-.dpill .num{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;}
-
-/* ── SLOT CARDS ── */
-.slot-card{background:var(--bg2);border:1.5px solid var(--brd2);border-radius:12px;
-  padding:13px;margin-bottom:9px;display:flex;align-items:center;gap:12px;
-  position:relative;overflow:hidden;}
-.slot-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
-.slot-card.open{cursor:pointer;}
-.slot-card.open::before{background:var(--green);}
-.slot-card.open:hover{border-color:var(--teal);}
-.slot-card.booked::before{background:var(--blue);opacity:.5;}
-.slot-card.booked{opacity:.55;}
-.slot-card.pending::before{background:var(--amber);opacity:.7;}
-.slot-card.pending{opacity:.7;}
-.slot-card.mine{border-color:rgba(210,153,34,.3);background:rgba(210,153,34,.06);}
-.slot-card.mine::before{background:var(--amber);}
-.slot-time-box{background:rgba(255,255,255,.05);border:1px solid var(--brd);
-  border-radius:8px;padding:8px 10px;text-align:center;min-width:56px;flex-shrink:0;}
-.slot-card.open .slot-time-box{background:rgba(14,184,190,.1);}
-.slot-time{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;}
-.slot-dur{font-size:.62rem;color:var(--mu);}
-.slot-info{flex:1;}
-.slot-doc-name{font-size:.84rem;font-weight:600;}
-.slot-doc-type{font-size:.68rem;color:var(--mu);margin-top:1px;}
-.slot-note{font-size:.68rem;color:var(--teal);margin-top:3px;font-style:italic;}
-.slot-status{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
-.status-dot{width:7px;height:7px;border-radius:50%;}
-.status-dot.open{background:var(--green);box-shadow:0 0 6px var(--green);}
-.status-dot.booked{background:var(--blue);}
-.status-dot.pending{background:var(--amber);}
-.status-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
-.status-label.open{color:var(--green);}
-.status-label.booked{color:var(--blue);}
-.status-label.pending,.status-label.mine{color:var(--amber);}
-
-/* ── BOOKING MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
-  display:none;align-items:flex-end;}
-.modal-overlay.open{display:flex;}
-.modal-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:18px 18px 32px;
-  width:100%;max-height:92vh;overflow-y:auto;
-  transform:translateY(100%);transition:transform .3s ease;}
-.modal-overlay.open .modal-sheet{transform:translateY(0);}
-.modal-handle{width:36px;height:4px;background:rgba(255,255,255,.1);
-  border-radius:2px;margin:0 auto 16px;}
-.modal-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:4px;}
-.modal-sub{font-size:.74rem;color:var(--mu);margin-bottom:14px;}
-.slot-preview{background:rgba(14,184,190,.08);border:1px solid rgba(14,184,190,.2);
-  border-radius:9px;padding:10px 13px;margin-bottom:14px;
-  display:flex;align-items:center;gap:10px;}
-.slot-preview-time{font-family:'Syne',sans-serif;font-size:1.1rem;
-  font-weight:700;color:var(--teal);}
-.slot-preview-info{font-size:.74rem;color:rgba(255,255,255,.55);line-height:1.5;}
-.mf{margin-bottom:10px;}
-.mf label{display:block;font-size:.65rem;font-weight:600;color:var(--teal);
-  text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
-.mf input,.mf select,.mf textarea{width:100%;background:rgba(255,255,255,.05);
-  border:1.5px solid var(--brd2);border-radius:8px;padding:9px 11px;
-  color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;}
-.mf textarea{resize:vertical;min-height:60px;}
-.mf input:focus,.mf select:focus,.mf textarea:focus{border-color:var(--teal);}
-.mf input::placeholder,.mf textarea::placeholder{color:var(--dim);}
-.mf select option{background:var(--bg3);}
-#modal-other-co,#modal-other-reason{display:none;}
-.modal-actions{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
-.btn-send{padding:13px;background:linear-gradient(135deg,var(--td),var(--teal));
-  border:none;border-radius:10px;color:var(--wh);font-family:'Syne',sans-serif;
-  font-size:.9rem;font-weight:700;cursor:pointer;}
-.btn-cancel-modal{padding:10px;background:transparent;border:1.5px solid var(--brd2);
-  border-radius:10px;color:var(--mu);font-family:'DM Sans',sans-serif;
-  font-size:.82rem;cursor:pointer;}
-
-/* ── BOTTOM NAV ── */
-.bottom-nav{background:var(--bg2);border-top:1px solid var(--brd);
-  display:none;padding:8px 0 14px;flex-shrink:0;}
-.bottom-nav.show{display:flex;}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;
-  gap:3px;cursor:pointer;opacity:.35;position:relative;}
-.nav-item.active{opacity:1;}
-.nav-icon{font-size:1.1rem;}
-.nav-label{font-size:.6rem;font-weight:500;}
-.nav-item.active .nav-label{color:var(--teal);}
-.nav-badge{position:absolute;top:-2px;right:8px;min-width:16px;height:16px;
-  background:var(--red);border-radius:8px;font-size:.58rem;font-weight:700;
-  color:var(--wh);display:none;align-items:center;justify-content:center;padding:0 3px;}
-.nav-badge.show{display:flex;}
-
-/* ── TABS (My Bookings / Notifications / Profile) ── */
-.tab-content{display:none;flex:1;flex-direction:column;}
-.tab-content.active{display:flex;}
-
-/* ── MY BOOKINGS ── */
-.bk-card{background:var(--bg2);border:1.5px solid var(--brd2);border-radius:12px;
-  padding:13px;margin-bottom:9px;position:relative;overflow:hidden;}
-.bk-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
-.bk-card.approved::before{background:var(--green);}
-.bk-card.pending::before{background:var(--amber);}
-.bk-card.declined::before{background:var(--red);}
-.bk-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.bk-time-box{background:rgba(255,255,255,.05);border:1px solid var(--brd);
-  border-radius:7px;padding:6px 9px;text-align:center;min-width:50px;flex-shrink:0;}
-.bk-time{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;}
-.bk-dur{font-size:.6rem;color:var(--mu);}
-.bk-doc{font-size:.84rem;font-weight:600;}
-.bk-meta{font-size:.68rem;color:var(--mu);margin-top:1px;}
-.bk-reason{font-size:.72rem;color:rgba(255,255,255,.45);margin-bottom:8px;line-height:1.5;}
-.bk-status{display:inline-block;font-size:.68rem;font-weight:700;
-  text-transform:uppercase;letter-spacing:.5px;border-radius:20px;
-  padding:3px 10px;margin-bottom:8px;}
-.bk-status.approved{background:rgba(63,185,80,.12);color:var(--green);}
-.bk-status.pending{background:rgba(210,153,34,.12);color:var(--amber);}
-.bk-status.declined{background:rgba(248,81,73,.12);color:var(--red);}
-.btn-cancel-bk{width:100%;padding:8px;background:transparent;
-  border:1.5px solid rgba(248,81,73,.3);border-radius:8px;
-  color:var(--red);font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer;}
-
-/* ── NOTIFICATIONS ── */
-.notif-card{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;
-  padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;}
-.notif-card.unread{background:rgba(14,184,190,.05);border-color:rgba(14,184,190,.15);}
-.notif-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;}
-.notif-msg{font-size:.8rem;line-height:1.5;flex:1;}
-.notif-time{font-size:.66rem;color:var(--dim);margin-top:3px;}
-
-/* ── PROFILE ── */
-.prof-banner{background:linear-gradient(135deg,var(--tdd),var(--td));
-  border-radius:12px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;}
-.prof-av{width:48px;height:48px;border-radius:11px;background:rgba(255,255,255,.15);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Syne',sans-serif;font-weight:700;font-size:1.2rem;flex-shrink:0;}
-.prof-name{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;}
-.prof-co{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:2px;}
-.prof-section{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;
-  margin-bottom:10px;overflow:hidden;}
-.prof-section-title{font-size:.65rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.8px;color:var(--teal);padding:11px 13px 7px;}
-.prof-field{padding:9px 13px;border-top:1px solid var(--brd);}
-.prof-field label{display:block;font-size:.63rem;font-weight:600;
-  color:var(--mu);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
-.prof-field input{width:100%;background:rgba(255,255,255,.04);
-  border:1.5px solid var(--brd2);border-radius:7px;padding:8px 10px;
-  color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;}
-.btn-save-prof{width:100%;padding:12px;background:linear-gradient(135deg,var(--td),var(--teal));
-  border:none;border-radius:9px;color:var(--wh);font-family:'Syne',sans-serif;
-  font-size:.86rem;font-weight:700;cursor:pointer;margin-bottom:8px;}
-.btn-signout{width:100%;padding:10px;background:transparent;
-  border:1.5px solid var(--brd2);border-radius:9px;color:var(--mu);
-  font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;}
-
-/* ── TOAST ── */
-#toast{position:fixed;top:16px;left:12px;right:12px;z-index:999;
-  padding:12px 15px;border-radius:10px;font-size:.8rem;font-weight:500;
-  text-align:center;display:none;line-height:1.4;}
-#toast.ok{background:var(--green);color:#0d1117;}
-#toast.err{background:var(--red);color:var(--wh);}
-#toast.info{background:var(--td);color:var(--wh);}
-#toast.warn{background:var(--amber);color:#0d1117;}
-
-@media(max-width:430px){
-  body{background:#0d1117;}
-}
+.auth-title{font-family:"Syne",sans-serif;font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:4px;}
+.auth-sub{font-size:.8rem;color:rgba(255,255,255,.4);margin-bottom:18px;}
+.field{margin-bottom:13px;}
+.field label{display:block;font-size:.7rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.field input,.field select{width:100%;padding:11px 13px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:9px;color:#fff;font-family:"DM Sans",sans-serif;font-size:.88rem;outline:none;}
+.field input::placeholder{color:rgba(255,255,255,.22);}
+.field input:focus,.field select:focus{border-color:var(--tl);}
+.field select option{background:var(--navy2);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.btn-auth{width:100%;padding:13px;background:linear-gradient(135deg,var(--teal),var(--tl));border:none;border-radius:9px;color:#fff;font-family:"Syne",sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:4px;}
+.auth-note{font-size:.74rem;color:rgba(255,255,255,.3);text-align:center;margin-top:12px;line-height:1.6;}
+.auth-note a{color:var(--tl);cursor:pointer;}
+.auth-err{background:var(--rb);color:var(--red);border-radius:8px;padding:9px 13px;font-size:.8rem;margin-bottom:12px;display:none;}
+#app-screen{display:none;min-height:100vh;}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:235px;background:var(--navy);display:flex;flex-direction:column;z-index:100;}
+.sb-brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.07);}
+.sb-logo{font-family:"Syne",sans-serif;font-size:1.2rem;font-weight:800;color:#fff;}
+.sb-logo span{color:var(--tl);}
+.sb-doc{margin-top:10px;display:flex;align-items:center;gap:9px;}
+.sb-av{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--td),var(--teal));display:flex;align-items:center;justify-content:center;font-family:"Syne",sans-serif;font-weight:700;font-size:.82rem;color:#fff;flex-shrink:0;}
+.sb-name{font-size:.8rem;font-weight:600;color:#fff;}
+.sb-spec{font-size:.66rem;color:rgba(255,255,255,.38);}
+.sb-nav{flex:1;padding:14px 11px;overflow-y:auto;}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.45);font-size:.83rem;font-weight:500;margin-bottom:2px;border:none;background:none;width:100%;text-align:left;}
+.nav-btn:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);}
+.nav-btn.active{background:rgba(13,115,119,.25);color:var(--tl);}
+.nav-ic{font-size:.95rem;width:20px;}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;border-radius:8px;padding:2px 6px;display:none;}
+.nav-badge.amber{background:var(--amber);}
+.sb-bottom{padding:13px 11px;border-top:1px solid rgba(255,255,255,.07);}
+.btn-logout{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.3);font-size:.8rem;border:none;background:none;width:100%;}
+.btn-logout:hover{color:rgba(255,255,255,.6);}
+.main{margin-left:235px;min-height:100vh;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(248,249,251,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.topbar h2{font-family:"Syne",sans-serif;font-size:1.05rem;font-weight:700;color:var(--navy);}
+.topbar p{font-size:.72rem;color:var(--muted);}
+.tb-date{font-size:.76rem;color:var(--muted);background:#fff;border:1px solid var(--border);border-radius:8px;padding:5px 12px;}
+.page{display:none;padding:24px 28px;flex:1;}
+.page.active{display:block;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.stat-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-open::before{background:var(--open);}
+.sc-pend::before{background:var(--amber);}
+.sc-conf::before{background:var(--blue);}
+.sc-total::before{background:var(--teal);}
+.stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;margin-bottom:10px;}
+.sc-open .stat-icon{background:var(--ob);}
+.sc-pend .stat-icon{background:var(--ab);}
+.sc-conf .stat-icon{background:var(--bb);}
+.sc-total .stat-icon{background:var(--txl);}
+.stat-num{font-family:"Syne",sans-serif;font-size:1.9rem;font-weight:700;color:var(--navy);line-height:1;margin-bottom:3px;}
+.stat-label{font-size:.74rem;color:var(--muted);}
+.dash-grid{display:grid;grid-template-columns:1fr 340px;gap:18px;}
+.panel{background:#fff;border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;}
+.ph{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.ph-title{font-family:"Syne",sans-serif;font-size:.87rem;font-weight:700;color:var(--navy);}
+.ph-sub{font-size:.72rem;color:var(--muted);margin-top:2px;}
+.ph-link{font-size:.76rem;color:var(--teal);font-weight:600;cursor:pointer;background:none;border:none;padding:4px 9px;border-radius:6px;}
+.pb{padding:16px 20px;}
+.empty{text-align:center;padding:32px 16px;color:var(--light);}
+.empty .ei{font-size:2rem;margin-bottom:8px;}
+.empty .et{font-size:.84rem;}
+.add-card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px;}
+.add-title{font-family:"Syne",sans-serif;font-size:.8rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;}
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;}
+.fg label{display:block;font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.fg input,.fg select{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:8px;font-family:"DM Sans",sans-serif;font-size:.83rem;color:var(--slate);background:var(--cream);outline:none;}
+.fg input:focus,.fg select:focus{border-color:var(--teal);}
+.btn-add{background:var(--teal);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-family:"Syne",sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;}
+.table-wrap{background:#fff;border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;}
+.filter-bar{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;gap:6px;}
+.ft{font-size:.74rem;font-weight:500;padding:5px 12px;border-radius:5px;border:1px solid transparent;background:var(--cream);cursor:pointer;color:var(--muted);}
+.ft.active{background:#fff;color:var(--teal);font-weight:600;box-shadow:var(--shadow);border-color:var(--border);}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--cream);border-bottom:1px solid var(--border);}
+thead th{font-size:.68rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:10px 14px;text-align:left;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#fafbfc;}
+tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:middle;}
+.td-time{font-family:"Syne",sans-serif;font-weight:700;color:var(--navy);}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;}
+.b-open{background:var(--ob);color:var(--open);}
+.b-pend{background:var(--ab);color:var(--amber);}
+.b-conf{background:var(--bb);color:var(--blue);}
+.act-btn{border-radius:6px;padding:4px 9px;font-size:.7rem;font-weight:600;cursor:pointer;border:1.5px solid;}
+.act-approve{border-color:#a7f3d0;color:var(--open);background:none;}
+.act-approve:hover{background:var(--ob);}
+.act-decline{border-color:#fca5a5;color:var(--red);background:none;}
+.act-decline:hover{background:var(--rb);}
+.act-delete{border-color:var(--border2);color:var(--muted);background:none;}
+.req-card{background:#fff;border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:12px;padding:16px 18px;margin-bottom:12px;display:flex;align-items:flex-start;gap:13px;box-shadow:var(--shadow);}
+.req-av{width:40px;height:40px;border-radius:9px;background:linear-gradient(135deg,var(--td),var(--teal));color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Syne",sans-serif;font-weight:700;font-size:.88rem;flex-shrink:0;}
+.req-info{flex:1;}
+.req-name{font-weight:600;font-size:.88rem;color:var(--navy);}
+.req-meta{font-size:.74rem;color:var(--muted);margin-top:2px;}
+.req-box{background:var(--cream);border-radius:7px;padding:7px 11px;margin-top:7px;font-size:.78rem;color:var(--slate);line-height:1.5;}
+.req-acts{display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.btn-full-ok{background:var(--ob);color:var(--open);border:1.5px solid #a7f3d0;border-radius:8px;padding:7px 16px;font-size:.78rem;font-weight:700;cursor:pointer;}
+.btn-full-no{background:var(--rb);color:var(--red);border:1.5px solid #fca5a5;border-radius:8px;padding:7px 16px;font-size:.78rem;font-weight:700;cursor:pointer;}
+.cal-nav{display:flex;align-items:center;gap:11px;margin-bottom:16px;}
+.cal-nav-btn{width:33px;height:33px;border-radius:7px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;color:var(--slate);}
+.cal-nav-btn:hover{border-color:var(--teal);color:var(--teal);}
+.cal-label{font-family:"Syne",sans-serif;font-size:.95rem;font-weight:700;color:var(--navy);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;}
+.cal-dh{font-size:.7rem;font-weight:600;color:var(--muted);text-align:center;padding:7px 0;text-transform:uppercase;}
+.cal-cell{background:#fff;border:1px solid var(--border);border-radius:9px;padding:8px;min-height:80px;}
+.cal-cell.today{border-color:var(--teal);background:var(--txl);}
+.cal-date{font-family:"Syne",sans-serif;font-size:.76rem;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.cal-chip{font-size:.65rem;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cc-open{background:var(--ob);color:var(--open);}
+.cc-booked{background:var(--bb);color:var(--blue);}
+.cc-pending{background:var(--ab);color:var(--amber);}
+.notif-item{display:flex;align-items:flex-start;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);}
+.notif-item:last-child{border-bottom:none;}
+.notif-item.unread{background:var(--txl);}
+.notif-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.notif-msg{font-size:.82rem;color:var(--slate);line-height:1.5;flex:1;}
+.notif-time{font-size:.7rem;color:var(--light);margin-top:3px;}
+.modal-bg{position:fixed;inset:0;background:rgba(15,30,45,.55);z-index:500;display:none;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal-box{background:#fff;border-radius:15px;padding:26px 28px;width:100%;max-width:400px;box-shadow:var(--shadowlg);}
+.modal-box h3{font-family:"Syne",sans-serif;font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:7px;}
+.modal-box p{font-size:.82rem;color:var(--muted);margin-bottom:18px;line-height:1.6;}
+.modal-acts{display:flex;gap:9px;justify-content:flex-end;}
+.btn-mok{padding:9px 17px;border-radius:8px;border:1.5px solid var(--border);background:none;font-family:"DM Sans",sans-serif;font-size:.82rem;cursor:pointer;color:var(--muted);}
+.btn-mconf{padding:9px 18px;border-radius:8px;border:none;background:var(--red);color:#fff;font-family:"Syne",sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;}
+.today-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.today-item:last-child{border-bottom:none;}
+.today-time{font-family:"Syne",sans-serif;font-size:.86rem;font-weight:700;color:var(--navy);min-width:42px;}
+.today-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.today-dot.open{background:var(--open);}
+.today-dot.booked{background:var(--blue);}
+.today-dot.pending{background:var(--amber);}
+.today-info{flex:1;font-size:.8rem;font-weight:500;color:var(--navy);}
+.today-co{font-size:.7rem;color:var(--muted);}
+.bsm{font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:12px;}
+.bsm.open{background:var(--ob);color:var(--open);}
+.bsm.booked{background:var(--bb);color:var(--blue);}
+.bsm.pending{background:var(--ab);color:var(--amber);}
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:9998;display:flex;flex-direction:column;gap:9px;}
+.toast{background:var(--navy);color:#fff;border-radius:11px;padding:12px 17px;font-size:.82rem;display:flex;align-items:center;gap:9px;box-shadow:var(--shadowlg);min-width:260px;max-width:340px;}
+.toast.ok{border-left:4px solid var(--open);}
+.toast.warn{border-left:4px solid var(--amber);}
+.toast.err{border-left:4px solid var(--red);}
+.toast.info{border-left:4px solid var(--tl);}
+@media(max-width:900px){.auth-left{display:none;}.auth-right{width:100%;}.sidebar{width:200px;}.main{margin-left:200px;}.stats-grid{grid-template-columns:repeat(2,1fr);}.dash-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
-
-<div id="toast"></div>
-
-<!-- ══ AUTH SCREEN ══ -->
-<div id="auth-screen" class="screen active">
-  <div class="auth-box">
+<div id="auth-screen">
+  <div class="auth-left">
     <div class="auth-logo">Doct<span>Rep</span></div>
-    <div class="auth-tag">Medical Rep App · South Africa</div>
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-signin">Sign In</button>
-      <button class="auth-tab" id="tab-register">Register</button>
+    <div class="auth-headline">Your schedule.<br>Your <em>terms</em>.<br>Zero chaos.</div>
+    <p class="auth-desc">DoctRep gives South African doctors full control over medical rep visits.</p>
+  </div>
+  <div class="auth-right">
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-si">Sign In</button>
+        <button class="auth-tab" id="tab-reg">Register Practice</button>
+      </div>
+      <div id="auth-err" class="auth-err"></div>
+      <div id="panel-si" class="auth-panel active">
+        <div class="auth-title">Welcome back, Doctor</div>
+        <div class="auth-sub">Sign in to your DoctRep dashboard</div>
+        <div class="field"><label>Email Address</label><input type="email" id="si-email" placeholder="doctor@practice.co.za"></div>
+        <div class="field"><label>Password</label><input type="password" id="si-pw" placeholder="Your password"></div>
+        <button class="btn-auth" id="btn-si">Sign In to Dashboard</button>
+        <div class="auth-note">No account? <a id="go-reg">Register your practice</a></div>
+      </div>
+      <div id="panel-reg" class="auth-panel">
+        <div class="auth-title">Register Your Practice</div>
+        <div class="auth-sub">Join DoctRep SA free</div>
+        <div class="field-row">
+          <div class="field"><label>First Name</label><input type="text" id="reg-first" placeholder="Priya"></div>
+          <div class="field"><label>Last Name</label><input type="text" id="reg-last" placeholder="Naidoo"></div>
+        </div>
+        <div class="field"><label>Specialty</label>
+          <select id="reg-type">
+            <option value="GP">General Practitioner (GP)</option>
+            <option>Cardiologist</option><option>Oncologist</option><option>Neurologist</option>
+            <option>Paediatrician</option><option>Gynaecologist</option><option>Dermatologist</option>
+            <option>Psychiatrist</option><option>Surgeon</option><option>Other Specialist</option>
+          </select></div>
+        <div class="field"><label>Practice / Hospital Name</label><input type="text" id="reg-place" placeholder="Durban North Medical Centre"></div>
+        <div class="field-row">
+          <div class="field"><label>City</label><input type="text" id="reg-city" placeholder="Durban"></div>
+          <div class="field"><label>Province</label>
+            <select id="reg-prov">
+              <option>KZN</option><option>Gauteng</option><option>Western Cape</option>
+              <option>Eastern Cape</option><option>Limpopo</option><option>Mpumalanga</option>
+              <option>Free State</option><option>North West</option><option>Northern Cape</option>
+            </select></div>
+        </div>
+        <div class="field"><label>Contact / Phone Number</label><input type="tel" id="reg-tel" placeholder="031 000 0000"></div>
+        <div class="field"><label>Email Address</label><input type="email" id="reg-email" placeholder="doctor@practice.co.za"></div>
+        <div class="field"><label>Password (min 6 characters)</label><input type="password" id="reg-pw" placeholder="Create a password"></div>
+        <button class="btn-auth" id="btn-reg">Create My DoctRep Account</button>
+        <div class="auth-note">Already registered? <a id="go-si">Sign in here</a></div>
+      </div>
     </div>
-    <div id="auth-err" class="auth-err"></div>
+  </div>
+</div>
 
-    <!-- SIGN IN -->
-    <div id="panel-signin" class="auth-panel active">
-      <div class="field"><label>Email</label>
-        <input type="email" id="si-email" placeholder="rep@company.co.za"></div>
-      <div class="field"><label>Password</label>
-        <div class="pw-wrap">
-          <input type="password" id="si-pw" placeholder="Your password">
-          <button class="pw-eye" id="si-eye">👁</button>
+<div id="app-screen">
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">Doct<span>Rep</span></div>
+      <div class="sb-doc">
+        <div class="sb-av" id="sb-av">DR</div>
+        <div><div class="sb-name" id="sb-name">Doctor</div><div class="sb-spec" id="sb-spec">--</div></div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <button class="nav-btn active" id="nav-dashboard"><span class="nav-ic">📊</span>Dashboard</button>
+      <button class="nav-btn" id="nav-slots"><span class="nav-ic">📅</span>Manage Slots</button>
+      <button class="nav-btn" id="nav-requests"><span class="nav-ic">📋</span>Requests<span class="nav-badge amber" id="badge-req" style="display:none">0</span></button>
+      <button class="nav-btn" id="nav-calendar"><span class="nav-ic">🗓</span>Calendar</button>
+      <button class="nav-btn" id="nav-notif"><span class="nav-ic">🔔</span>Notifications<span class="nav-badge" id="badge-notif" style="display:none">0</span></button>
+    </nav>
+    <div class="sb-bottom">
+      <button class="btn-logout" id="btn-logout"><span>🚪</span>Sign Out</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div><h2 id="tb-title">Dashboard</h2><p id="tb-sub">Your practice at a glance</p></div>
+      <div class="tb-date" id="tb-date"></div>
+    </div>
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card sc-open"><div class="stat-icon">🟢</div><div class="stat-num" id="st-open">0</div><div class="stat-label">Open Today</div></div>
+        <div class="stat-card sc-pend"><div class="stat-icon">⏳</div><div class="stat-num" id="st-pend">0</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card sc-conf"><div class="stat-icon">✅</div><div class="stat-num" id="st-conf">0</div><div class="stat-label">Confirmed Today</div></div>
+        <div class="stat-card sc-total"><div class="stat-icon">📈</div><div class="stat-num" id="st-total">0</div><div class="stat-label">Total Slots</div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="panel">
+          <div class="ph"><div><div class="ph-title">Pending Requests</div><div class="ph-sub">Reps awaiting your response</div></div><button class="ph-link" id="link-reqs">View all</button></div>
+          <div class="pb" id="dash-reqs"></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div><div class="ph-title">Today Schedule</div><div class="ph-sub" id="today-lbl">--</div></div></div>
+          <div class="pb" id="dash-today"></div>
         </div>
       </div>
-      <button class="btn-primary" id="btn-signin">Sign In →</button>
-      <div class="auth-note">No account? <a id="go-register">Register here</a></div>
     </div>
-
-    <!-- REGISTER -->
-    <div id="panel-register" class="auth-panel">
-      <div class="field-row">
-        <div class="field"><label>First Name</label>
-          <input type="text" id="reg-first" placeholder="Thabo"></div>
-        <div class="field"><label>Last Name</label>
-          <input type="text" id="reg-last" placeholder="Khumalo"></div>
-      </div>
-      <div class="field"><label>SA ID Number</label>
-        <input type="text" id="reg-id" placeholder="13-digit ID number"></div>
-      <div class="field"><label>Company</label>
-        <select id="reg-co">
-          <option value="">Select company…</option>
-          <option>Aspen Pharmacare</option>
-          <option>Adcock Ingram</option>
-          <option>Pfizer SA</option>
-          <option>Novartis SA</option>
-          <option>Roche SA</option>
-          <option>MSD SA</option>
-          <option>Sanofi SA</option>
-          <option value="Other">Other / Independent</option>
-        </select>
-      </div>
-      <div class="field" id="sub-co-field">
-        <label>Specify Company</label>
-        <input type="text" id="reg-co-other" placeholder="Company name"></div>
-      <div class="field"><label>Email</label>
-        <input type="email" id="reg-email" placeholder="you@company.co.za"></div>
-      <div class="field"><label>Contact Number</label>
-        <input type="tel" id="reg-tel" placeholder="082 000 0000"></div>
-      <div class="field"><label>Password (min 6 characters)</label>
-        <div class="pw-wrap">
-          <input type="password" id="reg-pw" placeholder="Create a password">
-          <button class="pw-eye" id="reg-eye">👁</button>
+    <div class="page" id="page-slots">
+      <div class="add-card">
+        <div class="add-title">Add New Rep Slot</div>
+        <div class="form-row">
+          <div class="fg"><label>Date</label><input type="date" id="sl-date"></div>
+          <div class="fg"><label>Start Time</label><input type="time" id="sl-time"></div>
+          <div class="fg"><label>Duration</label>
+            <select id="sl-dur"><option value="15">15 min</option><option value="20">20 min</option><option value="30" selected>30 min</option><option value="45">45 min</option></select></div>
+          <div class="fg"><label>Note (optional)</label><input type="text" id="sl-note" placeholder="e.g. Cardiology only"></div>
         </div>
+        <button class="btn-add" id="btn-add-slot">+ Add Slot</button>
       </div>
-      <div class="field"><label>Confirm Password</label>
-        <div class="pw-wrap">
-          <input type="password" id="reg-pw2" placeholder="Repeat password">
-          <button class="pw-eye" id="reg-eye2">👁</button>
+      <div class="table-wrap">
+        <div class="filter-bar" id="filter-bar">
+          <button class="ft active" data-f="all">All</button>
+          <button class="ft" data-f="open">Open</button>
+          <button class="ft" data-f="pending">Pending</button>
+          <button class="ft" data-f="booked">Confirmed</button>
         </div>
+        <table><thead><tr><th>Date</th><th>Time</th><th>Dur</th><th>Status</th><th>Rep</th><th>Company</th><th>Actions</th></tr></thead>
+        <tbody id="slots-tbody"></tbody></table>
       </div>
-      <button class="btn-primary" id="btn-register">Create Account →</button>
-      <div class="auth-note">Already registered? <a id="go-signin">Sign in</a></div>
     </div>
+    <div class="page" id="page-requests"><div id="reqs-list"></div></div>
+    <div class="page" id="page-calendar">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="cal-prev">&#8592;</button>
+        <div class="cal-label" id="cal-label">--</div>
+        <button class="cal-nav-btn" id="cal-next">&#8594;</button>
+      </div>
+      <div class="cal-grid" id="cal-hdrs"></div>
+      <div class="cal-grid" id="cal-grid" style="margin-top:7px;"></div>
+    </div>
+    <div class="page" id="page-notif"><div class="panel"><div id="notif-list"></div></div></div>
   </div>
 </div>
 
-<!-- ══ APP SCREEN ══ -->
-<div id="app-screen" class="screen">
-
-  <!-- FIND SLOTS TAB -->
-  <div id="tab-find" class="tab-content active">
-    <div class="app-header">
-      <div class="header-top">
-        <div class="app-logo">Doct<span>Rep</span></div>
-        <button class="hmb-btn" id="hmb-btn">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-      <div id="search-hint" class="search-hint">🔍 Search hospitals, doctors, GPs…</div>
-      <div id="selected-doc" class="selected-doc">
-        <span class="sel-name" id="sel-doc-name">—</span>
-        <span class="sel-change" id="sel-change">Change ›</span>
-      </div>
-    </div>
-    <div class="app-content">
-      <div id="no-doc-msg" class="empty-state">
-        <div class="ei">☝️</div>
-        <div class="et">Tap the ☰ menu to browse doctors and see their available slots.</div>
-      </div>
-      <div id="slots-view" style="display:none;">
-        <div class="date-pills" id="date-pills"></div>
-        <div id="slots-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MY BOOKINGS TAB -->
-  <div id="tab-mybk" class="tab-content">
-    <div class="app-header">
-      <div class="header-top">
-        <div class="app-logo">Doct<span>Rep</span></div>
-        <div style="font-size:.76rem;color:rgba(255,255,255,.45);font-weight:600;">My Bookings</div>
-      </div>
-    </div>
-    <div class="app-content" id="mybk-list"></div>
-  </div>
-
-  <!-- NOTIFICATIONS TAB -->
-  <div id="tab-notif" class="tab-content">
-    <div class="app-header">
-      <div class="header-top">
-        <div class="app-logo">Doct<span>Rep</span></div>
-        <div style="font-size:.76rem;color:rgba(255,255,255,.45);font-weight:600;">Alerts</div>
-      </div>
-    </div>
-    <div class="app-content" id="notif-list"></div>
-  </div>
-
-  <!-- PROFILE TAB -->
-  <div id="tab-prof" class="tab-content">
-    <div class="app-header">
-      <div class="header-top">
-        <div class="app-logo">Doct<span>Rep</span></div>
-        <div style="font-size:.76rem;color:rgba(255,255,255,.45);font-weight:600;">Profile</div>
-      </div>
-    </div>
-    <div class="app-content" id="prof-content"></div>
-  </div>
-
-  <!-- BOTTOM NAV -->
-  <div class="bottom-nav" id="bottom-nav">
-    <div class="nav-item active" id="nav-find">
-      <div class="nav-icon">🔍</div>
-      <div class="nav-label">Find Slots</div>
-    </div>
-    <div class="nav-item" id="nav-mybk">
-      <div class="nav-icon">📅</div>
-      <div class="nav-label">My Bookings</div>
-      <div class="nav-badge" id="badge-bk"></div>
-    </div>
-    <div class="nav-item" id="nav-notif">
-      <div class="nav-icon">🔔</div>
-      <div class="nav-label">Alerts</div>
-      <div class="nav-badge" id="badge-notif"></div>
-    </div>
-    <div class="nav-item" id="nav-prof">
-      <div class="nav-icon">👤</div>
-      <div class="nav-label">Profile</div>
+<div class="modal-bg" id="cx-modal">
+  <div class="modal-box">
+    <h3 id="cx-title">Confirm</h3>
+    <p id="cx-msg">Are you sure?</p>
+    <div class="modal-acts">
+      <button class="btn-mok" id="cx-no">Keep It</button>
+      <button class="btn-mconf" id="cx-yes">Yes, Continue</button>
     </div>
   </div>
 </div>
-
-<!-- DRAWER -->
-<div class="overlay" id="overlay"></div>
-<div class="drawer" id="drawer">
-  <div class="drawer-header">
-    <h3>Browse Doctors</h3>
-    <p>Tap to view available rep slots</p>
-  </div>
-  <div class="drawer-search">
-    <input type="text" id="drawer-search" placeholder="🔍 Filter by name or city…">
-  </div>
-  <div class="drawer-body" id="drawer-body"></div>
-</div>
-
-<!-- BOOKING MODAL -->
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-title">Request Appointment</div>
-    <div class="modal-sub" id="modal-sub">Fill in your details to send a booking request</div>
-    <div class="slot-preview">
-      <div class="slot-preview-time" id="modal-time">09:00</div>
-      <div class="slot-preview-info" id="modal-info">—</div>
-    </div>
-    <div class="mf"><label>Full Name</label>
-      <input type="text" id="modal-name" placeholder="Your full name"></div>
-    <div class="mf"><label>SA ID Number</label>
-      <input type="text" id="modal-id" placeholder="13-digit ID number"></div>
-    <div class="mf"><label>Pharmaceutical Company</label>
-      <select id="modal-co">
-        <option value="">Select…</option>
-        <option>Aspen Pharmacare</option><option>Adcock Ingram</option>
-        <option>Pfizer SA</option><option>Novartis SA</option>
-        <option>Roche SA</option><option>MSD SA</option><option>Sanofi SA</option>
-        <option value="Other">Other / Independent</option>
-      </select></div>
-    <div class="mf" id="modal-other-co">
-      <label>Specify Company</label>
-      <input type="text" id="modal-co-other" placeholder="Company name"></div>
-    <div class="mf"><label>Reason for Visit</label>
-      <select id="modal-reason">
-        <option value="">Select reason…</option>
-        <option>New Product Introduction</option>
-        <option>Follow-up Visit</option>
-        <option>Urgent Clinical Update</option>
-        <option>Educational / CPD Session</option>
-        <option>Sample Drop-off</option>
-        <option value="Other">Other</option>
-      </select></div>
-    <div class="mf" id="modal-other-reason">
-      <label>Your Reason</label>
-      <input type="text" id="modal-reason-other" placeholder="Describe your reason"></div>
-    <div class="mf"><label>Product / Range Promoting</label>
-      <textarea id="modal-prod" placeholder="Describe the product, dosage, indications…"></textarea></div>
-    <div class="mf"><label>Contact Number</label>
-      <input type="tel" id="modal-tel" placeholder="082 000 0000"></div>
-    <div class="modal-actions">
-      <button class="btn-send" id="btn-send">📨 Send Appointment Request</button>
-      <button class="btn-cancel-modal" id="btn-cancel-modal">Cancel</button>
-    </div>
-  </div>
-</div>
+<div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
-// ══════════════════════════════════════
-//  FIREBASE CONFIG
-// ══════════════════════════════════════
 firebase.initializeApp({
-  apiKey:            "AIzaSyBESylVeQPSsMgd0CMy3fb-f4xQwvZvtxM",
-  authDomain:        "fix-your-home-book-an-ar-ad6bc.firebaseapp.com",
-  projectId:         "fix-your-home-book-an-ar-ad6bc",
-  storageBucket:     "fix-your-home-book-an-ar-ad6bc.firebasestorage.app",
-  messagingSenderId: "985512922874",
-  appId:             "1:985512922874:web:3cc4610f84e01bfb7d4343"
+  apiKey:"AIzaSyBESylVeQPSsMgd0CMy3fb-f4xQwvZvtxM",
+  authDomain:"fix-your-home-book-an-ar-ad6bc.firebaseapp.com",
+  projectId:"fix-your-home-book-an-ar-ad6bc",
+  storageBucket:"fix-your-home-book-an-ar-ad6bc.firebasestorage.app",
+  messagingSenderId:"985512922874",
+  appId:"1:985512922874:web:3cc4610f84e01bfb7d4343"
 });
-var auth = firebase.auth();
-var db   = firebase.firestore();
+var auth=firebase.auth();
+var db=firebase.firestore();
+var curUser=null,docProf=null,SLOTS=[],NOTIFS=[],slotFilter="all",calOffset=0,pendingAction=null;
+var unsubSlots,unsubNotifs;
+var TODAY=new Date().toISOString().split("T")[0];
 
-// ══════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════
-var curRep  = null;
-var DOCS    = [];
-var SLOTS   = [];
-var NOTIFS  = [];
-var mySlots = new Set();
-var selDocId   = null;
-var selSlotId  = null;
-var curDate    = new Date().toISOString().split('T')[0];
-var unsubDocs, unsubSlots, unsubNotifs;
-
-// ══════════════════════════════════════
-//  TOAST
-// ══════════════════════════════════════
-function toast(msg, type) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = type || 'info';
-  t.style.display = 'block';
-  setTimeout(function(){ t.style.display = 'none'; }, 3500);
+function toast(msg,type){
+  var w=document.getElementById("toast-wrap");
+  var t=document.createElement("div");
+  t.className="toast "+(type||"info");
+  t.textContent=msg;
+  w.appendChild(t);
+  setTimeout(function(){t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(function(){t.remove();},300);},3500);
 }
 
-// ══════════════════════════════════════
-//  AUTH TABS
-// ══════════════════════════════════════
-document.getElementById('tab-signin').onclick = function() {
-  document.getElementById('tab-signin').classList.add('active');
-  document.getElementById('tab-register').classList.remove('active');
-  document.getElementById('panel-signin').classList.add('active');
-  document.getElementById('panel-register').classList.remove('active');
-  document.getElementById('auth-err').style.display = 'none';
-};
-document.getElementById('tab-register').onclick = function() {
-  document.getElementById('tab-register').classList.add('active');
-  document.getElementById('tab-signin').classList.remove('active');
-  document.getElementById('panel-register').classList.add('active');
-  document.getElementById('panel-signin').classList.remove('active');
-  document.getElementById('auth-err').style.display = 'none';
-};
-document.getElementById('go-register').onclick = function() {
-  document.getElementById('tab-register').click();
-};
-document.getElementById('go-signin').onclick = function() {
-  document.getElementById('tab-signin').click();
-};
-
-// ══════════════════════════════════════
-//  PASSWORD TOGGLES
-// ══════════════════════════════════════
-function setupEye(inputId, btnId) {
-  document.getElementById(btnId).onclick = function() {
-    var inp = document.getElementById(inputId);
-    inp.type = inp.type === 'password' ? 'text' : 'password';
-    this.textContent = inp.type === 'password' ? '👁' : '🙈';
-  };
+function showErr(msg){var e=document.getElementById("auth-err");e.textContent=msg;e.style.display="block";}
+function hideErr(){document.getElementById("auth-err").style.display="none";}
+function friendlyErr(code){
+  var m={"auth/user-not-found":"No account found with that email.","auth/wrong-password":"Incorrect password.","auth/invalid-credential":"Incorrect email or password.","auth/email-already-in-use":"That email is already registered.","auth/invalid-email":"Please enter a valid email address."};
+  return m[code]||"Something went wrong. Please try again.";
 }
-setupEye('si-pw',   'si-eye');
-setupEye('reg-pw',  'reg-eye');
-setupEye('reg-pw2', 'reg-eye2');
 
-// Company other toggle
-document.getElementById('reg-co').onchange = function() {
-  document.getElementById('sub-co-field').style.display =
-    this.value === 'Other' ? 'block' : 'none';
+document.getElementById("tab-si").onclick=function(){switchTab("si");};
+document.getElementById("tab-reg").onclick=function(){switchTab("reg");};
+document.getElementById("go-reg").onclick=function(){switchTab("reg");};
+document.getElementById("go-si").onclick=function(){switchTab("si");};
+function switchTab(t){
+  document.getElementById("tab-si").classList.toggle("active",t==="si");
+  document.getElementById("tab-reg").classList.toggle("active",t==="reg");
+  document.getElementById("panel-si").classList.toggle("active",t==="si");
+  document.getElementById("panel-reg").classList.toggle("active",t==="reg");
+  hideErr();
+}
+
+document.getElementById("btn-si").onclick=function(){
+  var email=document.getElementById("si-email").value.trim();
+  var pw=document.getElementById("si-pw").value;
+  if(!email||!pw){showErr("Please enter your email and password.");return;}
+  auth.signInWithEmailAndPassword(email,pw)
+    .then(function(c){loadDocProfile(c.user);})
+    .catch(function(e){showErr(friendlyErr(e.code));});
 };
 
-// ══════════════════════════════════════
-//  SIGN IN
-// ══════════════════════════════════════
-document.getElementById('btn-signin').onclick = function() {
-  var email = document.getElementById('si-email').value.trim();
-  var pw    = document.getElementById('si-pw').value;
-  if (!email || !pw) { showErr('Please enter email and password.'); return; }
-  auth.signInWithEmailAndPassword(email, pw)
-    .then(function(cred) {
-      loadRepProfile(cred.user);
+document.getElementById("btn-reg").onclick=function(){
+  var first=document.getElementById("reg-first").value.trim();
+  var last=document.getElementById("reg-last").value.trim();
+  var type=document.getElementById("reg-type").value;
+  var place=document.getElementById("reg-place").value.trim();
+  var city=document.getElementById("reg-city").value.trim();
+  var prov=document.getElementById("reg-prov").value;
+  var email=document.getElementById("reg-email").value.trim();
+  var pw=document.getElementById("reg-pw").value;
+  if(!first||!last||!place||!city||!email||!pw){showErr("Please complete all fields.");return;}
+  if(pw.length<6){showErr("Password must be at least 6 characters.");return;}
+  auth.createUserWithEmailAndPassword(email,pw)
+    .then(function(c){
+      curUser=c.user;
+      var tel=document.getElementById("reg-tel").value.trim();
+      docProf={uid:curUser.uid,first:first,last:last,name:"Dr. "+first+" "+last,type:type,place:place,city:city,province:prov,email:email,tel:tel};
+      db.collection("doctors").doc(curUser.uid).set(Object.assign({},docProf,{createdAt:firebase.firestore.FieldValue.serverTimestamp()}))
+        .then(function(){launchApp();toast("Welcome to DoctRep SA, Dr. "+last+"!","ok");});
     })
-    .catch(function(e) { showErr(friendlyErr(e.code)); });
+    .catch(function(e){showErr(friendlyErr(e.code));});
 };
 
-// ══════════════════════════════════════
-//  REGISTER
-// ══════════════════════════════════════
-document.getElementById('btn-register').onclick = function() {
-  var first = document.getElementById('reg-first').value.trim();
-  var last  = document.getElementById('reg-last').value.trim();
-  var saId  = document.getElementById('reg-id').value.trim();
-  var coSel = document.getElementById('reg-co').value;
-  var co    = coSel === 'Other' ? document.getElementById('reg-co-other').value.trim() : coSel;
-  var email = document.getElementById('reg-email').value.trim();
-  var tel   = document.getElementById('reg-tel').value.trim();
-  var pw    = document.getElementById('reg-pw').value;
-  var pw2   = document.getElementById('reg-pw2').value;
-  if (!first||!last||!saId||!co||!email||!tel||!pw) { showErr('Please complete all fields.'); return; }
-  if (pw.length < 6) { showErr('Password must be at least 6 characters.'); return; }
-  if (pw !== pw2)    { showErr('Passwords do not match.'); return; }
-  auth.createUserWithEmailAndPassword(email, pw)
-    .then(function(cred) {
-      var profile = { name: first+' '+last, co: co, email: email, tel: tel, saId: saId };
-      db.collection('reps').doc(cred.user.uid).set(profile)
-        .then(function() { loadRepProfile(cred.user); });
-    })
-    .catch(function(e) { showErr(friendlyErr(e.code)); });
-};
+auth.onAuthStateChanged(function(user){
+  var authVis=document.getElementById("auth-screen").style.display!=="none";
+  if(user&&!curUser&&!authVis){loadDocProfile(user);}
+});
 
-function showErr(msg) {
-  var el = document.getElementById('auth-err');
-  el.textContent = msg; el.style.display = 'block';
-}
-function friendlyErr(code) {
-  var m = {
-    'auth/user-not-found': 'No account with that email.',
-    'auth/wrong-password': 'Incorrect password.',
-    'auth/invalid-credential': 'Incorrect email or password.',
-    'auth/email-already-in-use': 'Email already registered.',
-    'auth/invalid-email': 'Please enter a valid email.'
-  };
-  return m[code] || 'Something went wrong. Please try again.';
-}
-
-// ══════════════════════════════════════
-//  LOAD PROFILE & LAUNCH
-// ══════════════════════════════════════
-function loadRepProfile(user) {
-  db.collection('reps').doc(user.uid).get().then(function(snap) {
-    var d = snap.exists ? snap.data() : {};
-    curRep = {
-      uid:  user.uid,
-      name: d.name  || 'Rep',
-      co:   d.co    || '',
-      email:d.email || user.email,
-      tel:  d.tel   || '',
-      saId: d.saId  || '',
-      ini:  (d.name||'R').split(' ').map(function(x){return x[0];}).join('').substring(0,2).toUpperCase()
-    };
+function loadDocProfile(user){
+  curUser=user;
+  db.collection("doctors").doc(user.uid).get().then(function(snap){
+    docProf=snap.exists?snap.data():{uid:user.uid,name:"Doctor",first:"D",last:"R",type:"GP",place:"",city:""};
     launchApp();
   });
 }
 
-function launchApp() {
-  document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app-screen').classList.add('active');
-  document.getElementById('bottom-nav').classList.add('show');
-  subscribeToData();
-  buildDatePills();
-  renderProfile();
+function launchApp(){
+  document.getElementById("auth-screen").style.display="none";
+  document.getElementById("app-screen").style.display="block";
+  var p=docProf;
+  document.getElementById("sb-av").textContent=((p.first||"D")[0]+(p.last||"R")[0]).toUpperCase();
+  document.getElementById("sb-name").textContent=p.name||"Doctor";
+  document.getElementById("sb-spec").textContent=p.type||"--";
+  document.getElementById("sl-date").value=TODAY;
+  document.getElementById("tb-date").textContent=new Date().toLocaleDateString("en-ZA",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+  document.getElementById("today-lbl").textContent=new Date().toLocaleDateString("en-ZA",{weekday:"long",day:"numeric",month:"long"});
+  subscribeData();
 }
 
-// ══════════════════════════════════════
-//  AUTH STATE — only restore on refresh
-// ══════════════════════════════════════
-auth.onAuthStateChanged(function(user) {
-  // Only auto-restore if auth screen is NOT visible (i.e. page was refreshed)
-  var authActive = document.getElementById('auth-screen').classList.contains('active');
-  if (user && !curRep && !authActive) {
-    loadRepProfile(user);
-  }
+document.getElementById("btn-logout").onclick=function(){
+  if(unsubSlots)unsubSlots();
+  if(unsubNotifs)unsubNotifs();
+  auth.signOut().then(function(){
+    curUser=null;docProf=null;SLOTS=[];NOTIFS=[];
+    document.getElementById("app-screen").style.display="none";
+    document.getElementById("auth-screen").style.display="flex";
+  });
+};
+
+function subscribeData(){
+  unsubSlots=db.collection("slots").where("doctorId","==",curUser.uid).onSnapshot(function(snap){
+    SLOTS=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());})
+      .sort(function(a,b){return(a.date+a.time).localeCompare(b.date+b.time);});
+    renderAll();
+  });
+  unsubNotifs=db.collection("notifications").where("doctorId","==",curUser.uid).onSnapshot(function(snap){
+    NOTIFS=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());})
+      .sort(function(a,b){return(b.createdAt?b.createdAt.seconds:0)-(a.createdAt?a.createdAt.seconds:0);});
+    updateBadges();
+    if(document.getElementById("page-notif").classList.contains("active"))renderNotifs();
+  });
+}
+
+var pageNames=["dashboard","slots","requests","calendar","notif"];
+pageNames.forEach(function(n){
+  document.getElementById("nav-"+n).onclick=function(){goPage(n);};
 });
+document.getElementById("link-reqs").onclick=function(){goPage("requests");};
 
-// ══════════════════════════════════════
-//  SIGN OUT
-// ══════════════════════════════════════
-function signOut() {
-  if (unsubDocs)  unsubDocs();
-  if (unsubSlots) unsubSlots();
-  if (unsubNotifs) unsubNotifs();
-  auth.signOut().then(function() {
-    curRep = null; DOCS = []; SLOTS = []; NOTIFS = []; mySlots = new Set();
-    selDocId = null;
-    document.getElementById('app-screen').classList.remove('active');
-    document.getElementById('auth-screen').classList.add('active');
-    document.getElementById('bottom-nav').classList.remove('show');
+function goPage(name){
+  pageNames.forEach(function(n){
+    document.getElementById("page-"+n).classList.toggle("active",n===name);
+    document.getElementById("nav-"+n).classList.toggle("active",n===name);
   });
+  var titles={dashboard:"Dashboard",slots:"Manage Slots",requests:"Appointment Requests",calendar:"Calendar View",notif:"Notifications"};
+  var subs={dashboard:"Your practice at a glance",slots:"Add and manage rep visit slots",requests:"Review and respond to rep requests",calendar:"7-day slot overview",notif:"Real-time activity from reps"};
+  document.getElementById("tb-title").textContent=titles[name]||name;
+  document.getElementById("tb-sub").textContent=subs[name]||"";
+  if(name==="calendar")renderCalendar();
+  if(name==="notif")renderNotifs();
+  if(name==="requests")renderRequests();
 }
 
-// ══════════════════════════════════════
-//  FIRESTORE SUBSCRIPTIONS
-// ══════════════════════════════════════
-function subscribeToData() {
-  // Doctors
-  unsubDocs = db.collection('doctors').onSnapshot(function(snap) {
-    DOCS = snap.docs.map(function(d) {
-      var data = d.data();
-      return {
-        id:    d.id,
-        name:  data.name || ('Dr. ' + (data.first||'') + ' ' + (data.last||'')).trim(),
-        type:  data.type || data.specialty || 'GP',
-        place: data.place || data.practiceName || '',
-        city:  data.city || '',
-        tel:   data.tel || data.phone || data.contactNumber || '',
-        icon:  iconFor(data.type || '')
-      };
-    });
-    renderDrawer('');
-    if (selDocId) renderSlots();
+function fmtDate(d){
+  var D=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var dt=new Date(d+"T00:00:00");return D[dt.getDay()]+" "+dt.getDate()+" "+M[dt.getMonth()];
+}
+function ini(n){return n?n.split(" ").map(function(x){return x[0];}).join("").substring(0,2).toUpperCase():"?";}
+function nowT(){return new Date().toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"});}
+
+function renderAll(){
+  renderStats();renderDashReqs();renderDashToday();renderSlotsTable();updateBadges();
+  if(document.getElementById("page-requests").classList.contains("active"))renderRequests();
+  if(document.getElementById("page-calendar").classList.contains("active"))renderCalendar();
+}
+
+function updateBadges(){
+  var pend=SLOTS.filter(function(s){return s.status==="pending";}).length;
+  var rb=document.getElementById("badge-req");rb.textContent=pend;rb.style.display=pend>0?"inline-block":"none";
+  var unread=NOTIFS.filter(function(n){return n.unread;}).length;
+  var nb=document.getElementById("badge-notif");nb.textContent=unread;nb.style.display=unread>0?"inline-block":"none";
+}
+
+function renderStats(){
+  var today=SLOTS.filter(function(s){return s.date===TODAY;});
+  document.getElementById("st-open").textContent=today.filter(function(s){return s.status==="open";}).length;
+  document.getElementById("st-pend").textContent=SLOTS.filter(function(s){return s.status==="pending";}).length;
+  document.getElementById("st-conf").textContent=today.filter(function(s){return s.status==="booked";}).length;
+  document.getElementById("st-total").textContent=SLOTS.length;
+}
+
+function renderDashReqs(){
+  var pend=SLOTS.filter(function(s){return s.status==="pending";}).slice(0,3);
+  var el=document.getElementById("dash-reqs");
+  if(!pend.length){el.innerHTML='<div class="empty"><div class="ei">&#10003;</div><div class="et">No pending requests</div></div>';return;}
+  var html="";
+  pend.forEach(function(s){
+    html+='<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">';
+    html+='<div class="sb-av">'+ini(s.rep)+"</div>";
+    html+='<div style="flex:1;"><div style="font-size:.83rem;font-weight:600;color:var(--navy);">'+(s.rep||"Rep")+" - "+(s.co||"")+"</div>";
+    html+='<div style="font-size:.72rem;color:var(--muted);">'+fmtDate(s.date)+" at "+s.time+"</div></div>";
+    html+='<div style="display:flex;gap:5px;">';
+    html+='<button class="act-btn act-approve" data-id="'+s.id+'">&#10003;</button>';
+    html+='<button class="act-btn act-decline" data-id="'+s.id+'">&#10007;</button>';
+    html+="</div></div>";
   });
-
-  // Slots
-  unsubSlots = db.collection('slots').onSnapshot(function(snap) {
-    SLOTS = snap.docs.map(function(d) {
-      var data = d.data();
-      return Object.assign({ id: d.id }, data, {
-        did: data.doctorId || data.did || ''
-      });
-    });
-    if (selDocId) renderSlots();
-    renderDrawer('');
-    renderMyBookings();
-  });
-
-  // Notifications for this rep
-  unsubNotifs = db.collection('notifications')
-    .where('repUid', '==', curRep.uid)
-    .onSnapshot(function(snap) {
-      NOTIFS = snap.docs.map(function(d) {
-        return Object.assign({ id: d.id }, d.data());
-      }).sort(function(a,b) {
-        return (b.createdAt ? b.createdAt.seconds : 0) - (a.createdAt ? a.createdAt.seconds : 0);
-      });
-      updateBadges();
-      if (document.getElementById('tab-notif').classList.contains('active')) renderNotifications();
-    });
+  el.innerHTML=html;
+  el.querySelectorAll(".act-approve").forEach(function(b){b.onclick=function(){approveSlot(this.dataset.id);};});
+  el.querySelectorAll(".act-decline").forEach(function(b){b.onclick=function(){openConfirm("decline",this.dataset.id);};});
 }
 
-function iconFor(type) {
-  type = (type || '').toLowerCase();
-  if (type.includes('hospital') || type.includes('clinic')) return '🏥';
-  if (type.includes('cardio')) return '❤️';
-  if (type.includes('onco'))   return '🔬';
-  return '🩺';
+function renderDashToday(){
+  var today=SLOTS.filter(function(s){return s.date===TODAY;});
+  var el=document.getElementById("dash-today");
+  if(!today.length){el.innerHTML='<div class="empty"><div class="ei">📭</div><div class="et">No slots today</div></div>';return;}
+  el.innerHTML=today.map(function(s){
+    return'<div class="today-item"><div class="today-time">'+s.time+'</div><div class="today-dot '+s.status+'"></div><div style="flex:1;"><div class="today-info">'+(s.rep||s.note||"Open slot")+'</div><div class="today-co">'+(s.co||"")+'</div></div><span class="bsm '+s.status+'">'+(s.status==="open"?"Open":s.status==="booked"?"Confirmed":"Pending")+"</span></div>";
+  }).join("");
 }
 
-// ══════════════════════════════════════
-//  HAMBURGER / DRAWER
-// ══════════════════════════════════════
-document.getElementById('hmb-btn').onclick    = openDrawer;
-document.getElementById('search-hint').onclick = openDrawer;
-document.getElementById('sel-change').onclick  = openDrawer;
-document.getElementById('overlay').onclick     = closeDrawer;
-
-function openDrawer() {
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
-  renderDrawer(document.getElementById('drawer-search').value);
-}
-function closeDrawer() {
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('overlay').classList.remove('open');
-}
-
-document.getElementById('drawer-search').oninput = function() {
-  renderDrawer(this.value);
+document.getElementById("filter-bar").onclick=function(e){
+  var btn=e.target.closest(".ft");
+  if(!btn)return;
+  document.querySelectorAll(".ft").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");
+  slotFilter=btn.dataset.f;
+  renderSlotsTable();
 };
 
-function renderDrawer(q) {
-  q = (q || '').toLowerCase();
-  var filtered = q ? DOCS.filter(function(d) {
-    return d.name.toLowerCase().includes(q) || d.city.toLowerCase().includes(q) || d.type.toLowerCase().includes(q);
-  }) : DOCS;
-
-  var hosps = filtered.filter(function(d) { return d.type === 'Hospital'; });
-  var gps   = filtered.filter(function(d) { return d.type === 'GP'; });
-  var specs  = filtered.filter(function(d) { return d.type !== 'Hospital' && d.type !== 'GP'; });
-
-  var html = '';
-  html += section('🏥 Hospitals', hosps);
-  html += section('👨‍⚕️ General Practitioners', gps);
-  html += section('🔬 Specialists', specs);
-
-  if (!filtered.length) html = '<div class="no-docs">No doctors found.</div>';
-  document.getElementById('drawer-body').innerHTML = html;
-
-  // Wire up doctor item clicks (now on inner button)
-  document.querySelectorAll('.doc-item button[data-id]').forEach(function(btn) {
-    btn.onclick = function() {
-      selectDoc(this.dataset.id);
-    };
+function renderSlotsTable(){
+  var list=slotFilter==="all"?SLOTS:SLOTS.filter(function(s){return s.status===slotFilter;});
+  var tbody=document.getElementById("slots-tbody");
+  if(!list.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--light);">No slots match this filter.</td></tr>';return;}
+  var html="";
+  list.forEach(function(s){
+    var bdg=s.status==="open"?'<span class="badge b-open">Open</span>':s.status==="booked"?'<span class="badge b-conf">Confirmed</span>':'<span class="badge b-pend">Pending</span>';
+    var acts="";
+    if(s.status==="open"){acts='<button class="act-btn act-delete" data-id="'+s.id+'">Delete</button>';}
+    else if(s.status==="pending"){acts='<button class="act-btn act-approve" data-id="'+s.id+'">Approve</button> <button class="act-btn act-decline" data-id="'+s.id+'">Decline</button>';}
+    else{acts='<button class="act-btn act-decline" data-id="'+s.id+'">Cancel</button>';}
+    html+='<tr><td>'+fmtDate(s.date)+'</td><td style="font-family:Syne,sans-serif;font-weight:700;color:var(--navy)">'+s.time+'</td><td>'+s.dur+'min</td><td>'+bdg+'</td><td>'+(s.rep||'--')+'</td><td>'+(s.co||'--')+'</td><td>'+acts+'</td></tr>';
   });
+  tbody.innerHTML=html;
+  tbody.querySelectorAll(".act-approve").forEach(function(b){b.onclick=function(){approveSlot(this.dataset.id);};});
+  tbody.querySelectorAll(".act-decline").forEach(function(b){b.onclick=function(){openConfirm(b.closest("tr").querySelector(".b-conf")?"cancel":"decline",this.dataset.id);};});
+  tbody.querySelectorAll(".act-delete").forEach(function(b){b.onclick=function(){openConfirm("delete",this.dataset.id);};});
 }
 
-function section(title, docs) {
-  var html = '<div class="drawer-section">';
-  html += '<div class="drawer-section-title">' + title + '</div>';
-  if (!docs.length) {
-    html += '<div class="no-docs">None registered yet.</div>';
-  } else {
-    docs.forEach(function(d) {
-      var openCount = SLOTS.filter(function(s) { return s.did === d.id && s.status === 'open'; }).length;
-      var slotLabel = openCount > 0 ? openCount + ' open' : '—';
-      var slotClass = openCount > 0 ? '' : 'empty';
-      html += '<div class="doc-item' + (d.id === selDocId ? ' selected' : '') + '" style="display:flex;flex-direction:column;gap:0;">';
-      html += '<button data-id="' + d.id + '" style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border:none;background:none;width:100%;text-align:left;">';
-      html += '<div class="doc-icon">' + d.icon + '</div>';
-      html += '<div style="flex:1;"><div class="doc-name">' + d.name + '</div>';
-      html += '<div class="doc-place">' + d.place + (d.city ? ' · ' + d.city : '') + '</div></div>';
-      html += '<div class="doc-slots ' + slotClass + '">' + slotLabel + '</div>';
-      html += '</button>';
-      if (d.tel) {
-        html += '<a href="tel:' + d.tel + '" style="display:flex;align-items:center;gap:6px;padding:5px 14px 9px 50px;font-size:.7rem;color:var(--teal);text-decoration:none;">📞 ' + d.tel + '</a>';
-      }
-      html += '</div>';
-    });
-  }
-  html += '</div>';
-  return html;
-}
+document.getElementById("btn-add-slot").onclick=function(){
+  var date=document.getElementById("sl-date").value;
+  var time=document.getElementById("sl-time").value;
+  var dur=parseInt(document.getElementById("sl-dur").value);
+  var note=document.getElementById("sl-note").value.trim();
+  if(!date||!time){toast("Please set a date and time.","warn");return;}
+  db.collection("slots").add({
+    doctorId:curUser.uid,date:date,time:time,dur:dur,note:note,
+    status:"open",rep:null,repUid:null,co:null,prod:null,tel:null,reason:null,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(){
+    document.getElementById("sl-date").value="";
+    document.getElementById("sl-time").value="";
+    document.getElementById("sl-note").value="";
+    toast("Slot added - reps can now see and request it","ok");
+  }).catch(function(e){toast("Error: "+e.message,"err");});
+};
 
-function selectDoc(id) {
-  selDocId = id;
-  var d = DOCS.find(function(x) { return x.id === id; });
-  if (!d) return;
-  document.getElementById('search-hint').style.display = 'none';
-  document.getElementById('selected-doc').classList.add('show');
-  document.getElementById('sel-doc-name').textContent = d.name;
-  document.getElementById('no-doc-msg').style.display = 'none';
-  document.getElementById('slots-view').style.display = 'block';
-  closeDrawer();
-  renderSlots();
-}
-
-// ══════════════════════════════════════
-//  DATE PILLS
-// ══════════════════════════════════════
-function buildDatePills() {
-  var container = document.getElementById('date-pills');
-  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  var html = '';
-  for (var i = 0; i < 10; i++) {
-    var d = new Date();
-    d.setDate(d.getDate() + i);
-    var iso = d.toISOString().split('T')[0];
-    var active = iso === curDate ? ' active' : '';
-    html += '<div class="dpill' + active + '" data-date="' + iso + '">';
-    html += '<div class="day">' + days[d.getDay()] + '</div>';
-    html += '<div class="num">' + d.getDate() + '</div>';
-    html += '</div>';
-  }
-  container.innerHTML = html;
-  container.querySelectorAll('.dpill').forEach(function(pill) {
-    pill.onclick = function() {
-      container.querySelectorAll('.dpill').forEach(function(p) { p.classList.remove('active'); });
-      this.classList.add('active');
-      curDate = this.dataset.date;
-      renderSlots();
-    };
-  });
-}
-
-// ══════════════════════════════════════
-//  RENDER SLOTS
-// ══════════════════════════════════════
-function renderSlots() {
-  if (!selDocId) return;
-  var doc = DOCS.find(function(d) { return d.id === selDocId; });
-  var slots = SLOTS.filter(function(s) {
-    return s.did === selDocId && s.date === curDate;
-  }).sort(function(a,b) { return a.time.localeCompare(b.time); });
-
-  var container = document.getElementById('slots-list');
-  if (!slots.length) {
-    container.innerHTML = '<div class="empty-state"><div class="ei">📭</div><div class="et">No slots on this day.<br>Try another date or doctor.</div></div>';
-    return;
-  }
-
-  var html = '';
-  slots.forEach(function(s) {
-    var isMine = mySlots.has(s.id);
-    var cls, dotCls, label, clickable;
-    if (isMine && s.status === 'booked') {
-      cls = 'mine'; dotCls = 'booked'; label = 'APPROVED ✅'; clickable = false;
-    } else if (isMine) {
-      cls = 'mine'; dotCls = 'pending'; label = 'MY REQUEST'; clickable = false;
-    } else if (s.status === 'open') {
-      cls = 'open'; dotCls = 'open'; label = 'OPEN'; clickable = true;
-    } else if (s.status === 'booked') {
-      cls = 'booked'; dotCls = 'booked'; label = 'BOOKED'; clickable = false;
-    } else {
-      cls = 'pending'; dotCls = 'pending'; label = 'PENDING'; clickable = false;
+function approveSlot(id){
+  var s=SLOTS.find(function(x){return x.id===id;});
+  if(!s)return;
+  db.collection("slots").doc(id).update({status:"booked"}).then(function(){
+    if(s.repUid){
+      db.collection("notifications").add({
+        repUid:s.repUid,doctorId:curUser.uid,
+        msg:"APPROVED: Your "+s.time+" appointment with "+docProf.name+" on "+fmtDate(s.date)+" is confirmed!",
+        type:"ok",time:nowT(),unread:true,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
     }
-
-    html += '<div class="slot-card ' + cls + '"' + (clickable ? ' data-slotid="' + s.id + '"' : '') + '>';
-    html += '<div class="slot-time-box"><div class="slot-time">' + s.time + '</div>';
-    html += '<div class="slot-dur">' + s.dur + 'min</div></div>';
-    html += '<div class="slot-info">';
-    html += '<div class="slot-doc-name">' + (doc ? doc.name : '—') + '</div>';
-    html += '<div class="slot-doc-type">' + (doc ? doc.type : '') + '</div>';
-    if (s.note) html += '<div class="slot-note">📌 ' + s.note + '</div>';
-    html += '</div>';
-    html += '<div class="slot-status">';
-    html += '<div class="status-dot ' + dotCls + '"></div>';
-    html += '<div class="status-label ' + dotCls + '">' + label + '</div>';
-    html += '</div></div>';
-  });
-  container.innerHTML = html;
-
-  // Wire open slot clicks
-  container.querySelectorAll('.slot-card.open').forEach(function(card) {
-    card.onclick = function() { openBookingModal(this.dataset.slotid); };
+    toast("Approved - "+s.rep+" confirmed for "+s.time,"ok");
+    if(document.getElementById("page-requests").classList.contains("active"))renderRequests();
   });
 }
 
-// ══════════════════════════════════════
-//  BOOKING MODAL
-// ══════════════════════════════════════
-function openBookingModal(slotId) {
-  selSlotId = slotId;
-  var s = SLOTS.find(function(x) { return x.id === slotId; });
-  var doc = DOCS.find(function(d) { return d.id === selDocId; });
-  if (!s || !doc) return;
-
-  document.getElementById('modal-title').textContent = 'Request Slot';
-  document.getElementById('modal-sub').textContent = 'Send a booking request to ' + doc.name;
-  document.getElementById('modal-time').textContent = s.time;
-  document.getElementById('modal-info').innerHTML = doc.name + '<br>' + fmtDate(s.date) + (s.note ? ' · ' + s.note : '');
-
-  // Pre-fill from profile
-  document.getElementById('modal-name').value = curRep.name || '';
-  document.getElementById('modal-id').value   = curRep.saId || '';
-  document.getElementById('modal-tel').value  = curRep.tel  || '';
-
-  document.getElementById('modal-overlay').classList.add('open');
-}
-
-document.getElementById('btn-cancel-modal').onclick = function() {
-  document.getElementById('modal-overlay').classList.remove('open');
+document.getElementById("cx-no").onclick=function(){document.getElementById("cx-modal").classList.remove("open");};
+document.getElementById("cx-yes").onclick=function(){
+  document.getElementById("cx-modal").classList.remove("open");
+  if(pendingAction){pendingAction();pendingAction=null;}
 };
 
-document.getElementById('modal-co').onchange = function() {
-  document.getElementById('modal-other-co').style.display = this.value === 'Other' ? 'block' : 'none';
-};
-document.getElementById('modal-reason').onchange = function() {
-  document.getElementById('modal-other-reason').style.display = this.value === 'Other' ? 'block' : 'none';
-};
-
-document.getElementById('btn-send').onclick = function() {
-  var name   = document.getElementById('modal-name').value.trim();
-  var saId   = document.getElementById('modal-id').value.trim();
-  var coSel  = document.getElementById('modal-co').value;
-  var co     = coSel === 'Other' ? document.getElementById('modal-co-other').value.trim() : coSel;
-  var rSel   = document.getElementById('modal-reason').value;
-  var reason = rSel === 'Other' ? document.getElementById('modal-reason-other').value.trim() : rSel;
-  var prod   = document.getElementById('modal-prod').value.trim();
-  var tel    = document.getElementById('modal-tel').value.trim();
-
-  if (!name)   { toast('Please enter your full name.', 'warn'); return; }
-  if (!saId)   { toast('Please enter your ID number.', 'warn'); return; }
-  if (!co)     { toast('Please select your company.', 'warn'); return; }
-  if (!reason) { toast('Please select a reason.', 'warn'); return; }
-  if (!prod)   { toast('Please describe your product.', 'warn'); return; }
-  if (!tel)    { toast('Please enter your contact number.', 'warn'); return; }
-
-  var s = SLOTS.find(function(x) { return x.id === selSlotId; });
-  if (!s) { toast('Slot not found. Please try again.', 'err'); return; }
-
-  var doctorId = s.doctorId || s.did || selDocId;
-
-  // Update slot
-  db.collection('slots').doc(selSlotId).update({
-    status: 'pending', rep: name, repUid: curRep.uid,
-    co: co, prod: prod, tel: tel, reason: reason, doctorId: doctorId
-  }).then(function() {
-    // Notify doctor
-    db.collection('notifications').add({
-      doctorId: doctorId, repUid: curRep.uid,
-      msg: '📨 New request: ' + name + ' (' + co + ') — ' + s.time + ' on ' + fmtDate(s.date),
-      type: 'info', time: nowTime(), unread: true,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    // Notify rep
-    db.collection('notifications').add({
-      repUid: curRep.uid,
-      msg: '⏳ Your request for ' + s.time + ' on ' + fmtDate(s.date) + ' is pending approval.',
-      type: 'info', time: nowTime(), unread: true,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    mySlots.add(selSlotId);
-    document.getElementById('modal-overlay').classList.remove('open');
-    toast('📨 Request sent! Awaiting doctor approval.', 'info');
-    updateBadges();
-  }).catch(function(e) { toast('Error: ' + e.message, 'err'); });
-};
-
-// ══════════════════════════════════════
-//  MY BOOKINGS
-// ══════════════════════════════════════
-function renderMyBookings() {
-  var mine = SLOTS.filter(function(s) { return mySlots.has(s.id); })
-    .sort(function(a,b) { return (a.date+a.time).localeCompare(b.date+b.time); });
-  var container = document.getElementById('mybk-list');
-  if (!mine.length) {
-    container.innerHTML = '<div class="empty-state"><div class="ei">📭</div><div class="et">No active bookings yet.<br>Find a slot to get started.</div></div>';
-    return;
-  }
-  var html = '';
-  mine.forEach(function(s) {
-    var doc = DOCS.find(function(d) { return d.id === s.did; });
-    var stCls = s.status === 'booked' ? 'approved' : s.status === 'pending' ? 'pending' : 'declined';
-    var stLabel = s.status === 'booked' ? '● APPROVED' : s.status === 'pending' ? '⏳ PENDING' : '❌ DECLINED';
-    var editAttr = s.status === 'pending' ? ' data-editid="' + s.id + '" style="cursor:pointer;"' : '';
-    html += '<div class="bk-card ' + stCls + '"' + editAttr + '>';
-    html += '<div class="bk-top"><div class="bk-time-box"><div class="bk-time">' + s.time + '</div>';
-    html += '<div class="bk-dur">' + s.dur + 'min</div></div>';
-    html += '<div><div class="bk-doc">' + (doc ? doc.name : '—') + '</div>';
-    html += '<div class="bk-meta">' + fmtDate(s.date) + ' · ' + (s.co || '') + '</div></div></div>';
-    html += '<div class="bk-reason">📋 ' + (s.reason || 'Visit') + '<br>🧪 ' + (s.prod || '—') + '</div>';
-    html += '<div class="bk-status ' + stCls + '">' + stLabel + '</div>';
-    if (s.status === 'pending') {
-      html += '<div style="display:flex;gap:8px;">';
-      html += '<button class="btn-edit-bk" data-id="' + s.id + '" style="flex:1;padding:8px;background:rgba(14,184,190,.12);border:1.5px solid rgba(14,184,190,.3);border-radius:8px;color:var(--teal);font-family:\'DM Sans\',sans-serif;font-size:.78rem;cursor:pointer;">✏️ Edit Request</button>';
-      html += '<button class="btn-cancel-bk" data-id="' + s.id + '" style="flex:1;padding:8px;background:transparent;border:1.5px solid rgba(248,81,73,.3);border-radius:8px;color:var(--red);font-family:\'DM Sans\',sans-serif;font-size:.78rem;cursor:pointer;">❌ Cancel</button>';
-      html += '</div>';
-    } else if (s.status !== 'booked') {
-      html += '<button class="btn-cancel-bk" data-id="' + s.id + '">❌ Cancel This Booking</button>';
-    }
-    html += '</div>';
-  });
-  container.innerHTML = html;
-  container.querySelectorAll('.btn-cancel-bk').forEach(function(btn) {
-    btn.onclick = function() { cancelBooking(this.dataset.id); };
-  });
-  container.querySelectorAll('.btn-edit-bk').forEach(function(btn) {
-    btn.onclick = function() {
-      var s = SLOTS.find(function(x) { return x.id === btn.dataset.id; });
-      if (s) { selDocId = s.did; openBookingModal(s.id); }
-    };
-  });
-  // Make whole pending card clickable
-  container.querySelectorAll('.bk-card[data-editid]').forEach(function(card) {
-    card.onclick = function(e) {
-      // Don't trigger if cancel button was clicked
-      if (e.target.classList.contains('btn-cancel-bk')) return;
-      if (e.target.classList.contains('btn-edit-bk')) return;
-      var s = SLOTS.find(function(x) { return x.id === card.dataset.editid; });
-      if (s) { selDocId = s.did; openBookingModal(s.id); }
-    };
-  });
-}
-
-function cancelBooking(slotId) {
-  var s = SLOTS.find(function(x) { return x.id === slotId; });
-  if (!s) return;
-  var doctorId = s.doctorId || s.did;
-  db.collection('slots').doc(slotId).update({
-    status: 'open', rep: null, repUid: null, co: null, prod: null, tel: null, reason: null
-  }).then(function() {
-    db.collection('notifications').add({
-      doctorId: doctorId, repUid: curRep.uid,
-      msg: curRep.name + ' cancelled their ' + s.time + ' booking on ' + fmtDate(s.date) + '. Slot is now open.',
-      type: 'warn', time: nowTime(), unread: true,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    mySlots.delete(slotId);
-    renderMyBookings();
-    updateBadges();
-    toast('Booking cancelled.', 'warn');
-  });
-}
-
-// ══════════════════════════════════════
-//  NOTIFICATIONS
-// ══════════════════════════════════════
-function renderNotifications() {
-  NOTIFS.forEach(function(n) { n.unread = false; });
-  updateBadges();
-  var container = document.getElementById('notif-list');
-  if (!NOTIFS.length) {
-    container.innerHTML = '<div class="empty-state"><div class="ei">🔔</div><div class="et">No notifications yet.</div></div>';
-    return;
-  }
-  var colors = { ok: 'var(--green)', err: 'var(--red)', info: 'var(--teal)', warn: 'var(--amber)' };
-  var html = '';
-  NOTIFS.forEach(function(n) {
-    html += '<div class="notif-card' + (n.unread ? ' unread' : '') + '" style="position:relative;">';
-    html += '<div class="notif-dot" style="background:' + (colors[n.type] || 'var(--mu)') + '"></div>';
-    html += '<div style="flex:1;"><div class="notif-msg">' + n.msg + '</div>';
-    html += '<div class="notif-time">' + (n.time || '') + '</div></div>';
-    html += '<button data-id="' + n.id + '" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:.9rem;padding:4px;flex-shrink:0;" title="Delete">🗑</button>';
-    html += '</div>';
-  });
-  container.innerHTML = html;
-  // Wire delete buttons
-  container.querySelectorAll('button[data-id]').forEach(function(btn) {
-    btn.onclick = function() {
-      var nid = this.dataset.id;
-      db.collection('notifications').doc(nid).delete().then(function() {
-        NOTIFS = NOTIFS.filter(function(n) { return n.id !== nid; });
-        renderNotifications();
-        updateBadges();
-      });
-    };
-  });
-}
-
-// ══════════════════════════════════════
-//  PROFILE
-// ══════════════════════════════════════
-function renderProfile() {
-  if (!curRep) return;
-  var html = '';
-  html += '<div class="prof-banner">';
-  html += '<div class="prof-av">' + curRep.ini + '</div>';
-  html += '<div><div class="prof-name">' + curRep.name + '</div>';
-  html += '<div class="prof-co">' + curRep.co + '</div></div></div>';
-  html += '<div class="prof-section"><div class="prof-section-title">Personal Details</div>';
-  html += '<div class="prof-field"><label>Full Name</label><input id="pf-name" value="' + (curRep.name||'') + '"></div>';
-  html += '<div class="prof-field"><label>SA ID Number</label><input id="pf-id" value="' + (curRep.saId||'') + '"></div>';
-  html += '<div class="prof-field"><label>Contact Number</label><input id="pf-tel" value="' + (curRep.tel||'') + '"></div>';
-  html += '<div class="prof-field"><label>Email</label><input type="email" id="pf-email" value="' + (curRep.email||'') + '"></div></div>';
-  html += '<div class="prof-section"><div class="prof-section-title">Company</div>';
-  html += '<div class="prof-field"><label>Pharmaceutical Company</label><input id="pf-co" value="' + (curRep.co||'') + '"></div></div>';
-  html += '<button class="btn-save-prof" id="btn-save-prof">💾 Save Profile</button>';
-  html += '<button class="btn-signout" id="btn-signout">🚪 Sign Out</button>';
-  document.getElementById('prof-content').innerHTML = html;
-
-  document.getElementById('btn-save-prof').onclick = function() {
-    curRep.name  = document.getElementById('pf-name').value.trim();
-    curRep.saId  = document.getElementById('pf-id').value.trim();
-    curRep.tel   = document.getElementById('pf-tel').value.trim();
-    curRep.co    = document.getElementById('pf-co').value.trim();
-    curRep.ini   = curRep.name.split(' ').map(function(x){return x[0];}).join('').substring(0,2).toUpperCase();
-    db.collection('reps').doc(curRep.uid).set({
-      name: curRep.name, co: curRep.co, tel: curRep.tel, saId: curRep.saId, email: curRep.email
-    }).then(function() {
-      toast('✅ Profile saved!', 'ok');
-      renderProfile();
-      switchTab('find');
-    });
+function openConfirm(type,slotId){
+  var s=SLOTS.find(function(x){return x.id===slotId;});
+  var titles={decline:"Decline Request?",cancel:"Cancel Appointment?",delete:"Delete Slot?"};
+  var msgs={
+    decline:"Decline "+(s&&s.rep?s.rep+"s":"this")+" request? They will be notified.",
+    cancel:"Cancel the booking with "+(s&&s.rep?s.rep:"rep")+"? They will be notified.",
+    delete:"Delete this open slot permanently? This cannot be undone."
   };
-  document.getElementById('btn-signout').onclick = signOut;
+  document.getElementById("cx-title").textContent=titles[type]||"Confirm";
+  document.getElementById("cx-msg").textContent=msgs[type]||"Are you sure?";
+  document.getElementById("cx-modal").classList.add("open");
+  pendingAction=function(){
+    if(type==="delete"){
+      db.collection("slots").doc(slotId).delete().then(function(){toast("Slot deleted","ok");});
+    }else{
+      db.collection("slots").doc(slotId).update({status:"open",rep:null,repUid:null,co:null,prod:null,tel:null,reason:null}).then(function(){
+        if(s&&s.repUid){
+          var msg=type==="decline"?"DECLINED: Your request for "+s.time+" on "+fmtDate(s.date)+" with "+docProf.name+" was declined.":"CANCELLED: Your "+s.time+" appointment with "+docProf.name+" on "+fmtDate(s.date)+" was cancelled.";
+          db.collection("notifications").add({repUid:s.repUid,doctorId:curUser.uid,msg:msg,type:type==="decline"?"err":"warn",time:nowT(),unread:true,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        }
+        toast(type==="decline"?"Declined":"Cancelled","warn");
+        if(document.getElementById("page-requests").classList.contains("active"))renderRequests();
+      });
+    }
+  };
 }
 
-// ══════════════════════════════════════
-//  BOTTOM NAV
-// ══════════════════════════════════════
-document.getElementById('nav-find').onclick  = function() { switchTab('find'); };
-document.getElementById('nav-mybk').onclick  = function() { switchTab('mybk'); };
-document.getElementById('nav-notif').onclick = function() { switchTab('notif'); };
-document.getElementById('nav-prof').onclick  = function() { switchTab('prof'); };
-
-function switchTab(name) {
-  ['find','mybk','notif','prof'].forEach(function(t) {
-    document.getElementById('tab-' + t).classList.toggle('active', t === name);
-    document.getElementById('nav-' + t).classList.toggle('active', t === name);
+function renderRequests(){
+  var pend=SLOTS.filter(function(s){return s.status==="pending";});
+  var el=document.getElementById("reqs-list");
+  if(!pend.length){el.innerHTML='<div class="empty" style="background:#fff;border-radius:13px;border:1px solid var(--border);padding:40px;"><div class="ei">&#10003;</div><div class="et">No pending requests - all caught up!</div></div>';return;}
+  var html="";
+  pend.forEach(function(s){
+    html+='<div class="req-card"><div class="req-av">'+ini(s.rep)+'</div><div class="req-info"><div class="req-name">'+(s.rep||"Rep")+'</div><div class="req-meta">'+(s.co||"")+" - "+fmtDate(s.date)+" at "+s.time+" - "+s.dur+"min - "+(s.tel||"")+'</div><div class="req-box"><strong>'+(s.reason||"Visit")+'</strong><br>'+(s.prod||"--")+'</div></div><div class="req-acts"><button class="btn-full-ok" data-id="'+s.id+'">Approve</button><button class="btn-full-no" data-id="'+s.id+'">Decline</button></div></div>';
   });
-  if (name === 'mybk')  renderMyBookings();
-  if (name === 'notif') renderNotifications();
-  if (name === 'prof')  renderProfile();
+  el.innerHTML=html;
+  el.querySelectorAll(".btn-full-ok").forEach(function(b){b.onclick=function(){approveSlot(this.dataset.id);};});
+  el.querySelectorAll(".btn-full-no").forEach(function(b){b.onclick=function(){openConfirm("decline",this.dataset.id);};});
 }
 
-function updateBadges() {
-  var bk = mySlots.size;
-  var bb = document.getElementById('badge-bk');
-  bb.textContent = bk; bb.classList.toggle('show', bk > 0);
-
-  var unread = NOTIFS.filter(function(n) { return n.unread; }).length;
-  var nb = document.getElementById('badge-notif');
-  nb.textContent = unread; nb.classList.toggle('show', unread > 0);
+document.getElementById("cal-prev").onclick=function(){calOffset-=7;renderCalendar();};
+document.getElementById("cal-next").onclick=function(){calOffset+=7;renderCalendar();};
+function renderCalendar(){
+  var hdrs=document.getElementById("cal-hdrs");
+  var grid=document.getElementById("cal-grid");
+  var days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  hdrs.innerHTML=days.map(function(d){return'<div class="cal-dh">'+d+"</div>";}).join("");
+  var base=new Date();base.setDate(base.getDate()+calOffset);
+  var endD=new Date(base);endD.setDate(base.getDate()+6);
+  document.getElementById("cal-label").textContent=base.toLocaleDateString("en-ZA",{day:"numeric",month:"short"})+" - "+endD.toLocaleDateString("en-ZA",{day:"numeric",month:"short",year:"numeric"});
+  grid.innerHTML="";
+  for(var i=0;i<7;i++){
+    var d=new Date(base);d.setDate(base.getDate()+i);
+    var iso=d.toISOString().split("T")[0];
+    var ds=SLOTS.filter(function(s){return s.date===iso;});
+    var cell=document.createElement("div");
+    cell.className="cal-cell"+(iso===TODAY?" today":"");
+    var html='<div class="cal-date">'+d.getDate()+"</div>";
+    if(ds.length){ds.forEach(function(s){html+='<span class="cal-chip cc-'+s.status+'">'+s.time+(s.rep?" - "+s.rep.split(" ")[0]:"")+"</span>";});}
+    else{html+='<div style="font-size:.66rem;color:var(--light);">No slots</div>';}
+    cell.innerHTML=html;
+    grid.appendChild(cell);
+  }
 }
 
-// ══════════════════════════════════════
-//  HELPERS
-// ══════════════════════════════════════
-function fmtDate(d) {
-  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var dt = new Date(d + 'T00:00:00');
-  return days[dt.getDay()] + ' ' + dt.getDate() + ' ' + months[dt.getMonth()];
-}
-function nowTime() {
-  return new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+function renderNotifs(){
+  NOTIFS.forEach(function(n){
+    if(n.unread&&n.id){db.collection("notifications").doc(n.id).update({unread:false}).catch(function(){});}
+    n.unread=false;
+  });
+  updateBadges();
+  var el=document.getElementById("notif-list");
+  if(!NOTIFS.length){el.innerHTML='<div class="empty"><div class="ei">&#128276;</div><div class="et">No notifications yet.</div></div>';return;}
+  var colors={ok:"var(--open)",err:"var(--red)",info:"var(--tl)",warn:"var(--amber)"};
+  el.innerHTML=NOTIFS.map(function(n){return'<div class="notif-item'+(n.unread?" unread":"")+'"><div class="notif-dot" style="background:'+(colors[n.type]||"var(--light)")+'"></div><div><div class="notif-msg">'+n.msg+'</div><div class="notif-time">'+(n.time||"")+"</div></div></div>";}).join("");
 }
 
-// Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(function(){});
-}
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){});}
 </script>
 </body>
 </html>
