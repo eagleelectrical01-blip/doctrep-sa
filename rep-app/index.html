@@ -1036,44 +1036,86 @@ function renderMyBookings() {
   var html = '';
   mine.forEach(function(s) {
     var doc = DOCS.find(function(d) { return d.id === s.did; });
-    var stCls = s.status === 'booked' ? 'approved' : s.status === 'pending' ? 'pending' : 'declined';
-    var stLabel = s.status === 'booked' ? '● APPROVED' : s.status === 'pending' ? '⏳ PENDING' : '❌ DECLINED';
-    var editAttr = s.status === 'pending' ? ' data-editid="' + s.id + '" style="cursor:pointer;"' : '';
-    html += '<div class="bk-card ' + stCls + '"' + editAttr + '>';
-    html += '<div class="bk-top"><div class="bk-time-box"><div class="bk-time">' + s.time + '</div>';
-    html += '<div class="bk-dur">' + s.dur + 'min</div></div>';
+    var stCls   = s.status === 'booked' ? 'approved' : s.status === 'pending' ? 'pending' : 'declined';
+    var stLabel = s.status === 'booked' ? '✅ APPROVED' : s.status === 'pending' ? '⏳ PENDING APPROVAL' : '❌ DECLINED';
+    html += '<div class="bk-card ' + stCls + '">';
+    html += '<div class="bk-top">';
+    html += '<div class="bk-time-box"><div class="bk-time">' + s.time + '</div><div class="bk-dur">' + s.dur + 'min</div></div>';
     html += '<div><div class="bk-doc">' + (doc ? doc.name : '—') + '</div>';
-    html += '<div class="bk-meta">' + fmtDate(s.date) + ' · ' + (s.co || '') + '</div></div></div>';
-    html += '<div class="bk-reason">📋 ' + (s.reason || 'Visit') + '<br>🧪 ' + (s.prod || '—') + '</div>';
+    html += '<div class="bk-meta">' + fmtDate(s.date) + ' · ' + (s.co || '') + '</div></div>';
+    html += '</div>';
+    html += '<div class="bk-reason">📋 ' + (s.reason || '—') + '<br>🧪 ' + (s.prod ? s.prod.substring(0,80) : '—') + '</div>';
     html += '<div class="bk-status ' + stCls + '">' + stLabel + '</div>';
+    html += '<div style="display:flex;gap:8px;margin-top:8px;">';
     if (s.status === 'pending') {
-      html += '<div style="display:flex;gap:8px;">';
-      html += '<button class="btn-edit-bk" data-id="' + s.id + '" style="flex:1;padding:8px;background:rgba(14,184,190,.12);border:1.5px solid rgba(14,184,190,.3);border-radius:8px;color:var(--teal);font-family:\'DM Sans\',sans-serif;font-size:.78rem;cursor:pointer;">✏️ Edit Request</button>';
-      html += '<button class="btn-cancel-bk" data-id="' + s.id + '" style="flex:1;padding:8px;background:transparent;border:1.5px solid rgba(248,81,73,.3);border-radius:8px;color:var(--red);font-family:\'DM Sans\',sans-serif;font-size:.78rem;cursor:pointer;">❌ Cancel</button>';
-      html += '</div>';
-    } else if (s.status !== 'booked') {
-      html += '<button class="btn-cancel-bk" data-id="' + s.id + '">❌ Cancel This Booking</button>';
+      html += '<button data-id="' + s.id + '" class="mybk-edit" style="flex:1;padding:9px;background:rgba(14,184,190,.1);border:1.5px solid rgba(14,184,190,.35);border-radius:8px;color:var(--teal);font-size:.8rem;font-weight:600;cursor:pointer;">✏️ Edit</button>';
     }
+    html += '<button data-id="' + s.id + '" class="mybk-del" style="flex:1;padding:9px;background:rgba(248,81,73,.08);border:1.5px solid rgba(248,81,73,.35);border-radius:8px;color:var(--red);font-size:.8rem;font-weight:600;cursor:pointer;">🗑 Delete</button>';
+    html += '</div>';
     html += '</div>';
   });
   container.innerHTML = html;
-  container.querySelectorAll('.btn-cancel-bk').forEach(function(btn) {
-    btn.onclick = function() { cancelBooking(this.dataset.id); };
-  });
-  container.querySelectorAll('.btn-edit-bk').forEach(function(btn) {
+
+  // EDIT — open modal pre-filled with this booking's data
+  container.querySelectorAll('.mybk-edit').forEach(function(btn) {
     btn.onclick = function() {
-      var s = SLOTS.find(function(x) { return x.id === btn.dataset.id; });
-      if (s) { selDocId = s.did; openBookingModal(s.id); }
+      var sid = this.dataset.id;
+      var s   = SLOTS.find(function(x) { return x.id === sid; });
+      if (!s) return;
+      selDocId  = s.did;
+      selSlotId = sid;
+      var d = DOCS.find(function(x) { return x.id === s.did; });
+      document.getElementById('modal-title').textContent = 'Edit Booking Request';
+      document.getElementById('modal-sub').textContent   = 'Update your details for ' + (d ? d.name : 'doctor');
+      document.getElementById('modal-time').textContent  = s.time;
+      document.getElementById('modal-info').innerHTML    = (d ? d.name : '—') + '<br>' + fmtDate(s.date);
+      document.getElementById('modal-name').value = s.rep  || curRep.name || '';
+      document.getElementById('modal-id').value   = curRep.saId || '';
+      document.getElementById('modal-tel').value  = s.tel  || curRep.tel  || '';
+      document.getElementById('modal-prod').value = s.prod || '';
+      // Company
+      var coEl = document.getElementById('modal-co');
+      var coSet = false;
+      for (var i = 0; i < coEl.options.length; i++) {
+        if (coEl.options[i].text === s.co || coEl.options[i].value === s.co) {
+          coEl.selectedIndex = i; coSet = true; break;
+        }
+      }
+      if (!coSet && s.co) {
+        coEl.value = 'Other';
+        document.getElementById('modal-other-co').style.display = 'block';
+        document.getElementById('modal-co-other').value = s.co;
+      }
+      // Reason
+      var rEl = document.getElementById('modal-reason');
+      var rSet = false;
+      for (var j = 0; j < rEl.options.length; j++) {
+        if (rEl.options[j].text === s.reason) { rEl.selectedIndex = j; rSet = true; break; }
+      }
+      if (!rSet && s.reason) {
+        rEl.value = 'Other';
+        document.getElementById('modal-other-reason').style.display = 'block';
+        document.getElementById('modal-reason-other').value = s.reason;
+      }
+      document.getElementById('modal-overlay').classList.add('open');
     };
   });
-  // Make whole pending card clickable
-  container.querySelectorAll('.bk-card[data-editid]').forEach(function(card) {
-    card.onclick = function(e) {
-      // Don't trigger if cancel button was clicked
-      if (e.target.classList.contains('btn-cancel-bk')) return;
-      if (e.target.classList.contains('btn-edit-bk')) return;
-      var s = SLOTS.find(function(x) { return x.id === card.dataset.editid; });
-      if (s) { selDocId = s.did; openBookingModal(s.id); }
+
+  // DELETE — free the slot, remove from mySlots
+  container.querySelectorAll('.mybk-del').forEach(function(btn) {
+    btn.onclick = function() {
+      var sid = this.dataset.id;
+      var s   = SLOTS.find(function(x) { return x.id === sid; });
+      if (!s) return;
+      if (!confirm('Delete this booking? The slot will become available again.')) return;
+      db.collection('slots').doc(sid).update({
+        status: 'open', rep: null, repUid: null, co: null, prod: null, tel: null, reason: null
+      }).then(function() {
+        mySlots.delete(sid);
+        renderMyBookings();
+        updateBadges();
+        toast('Booking deleted.', 'warn');
+      });
     };
   });
 }
