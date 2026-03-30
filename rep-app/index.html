@@ -1038,7 +1038,8 @@ function renderMyBookings() {
     var doc = DOCS.find(function(d) { return d.id === s.did; });
     var stCls = s.status === 'booked' ? 'approved' : s.status === 'pending' ? 'pending' : 'declined';
     var stLabel = s.status === 'booked' ? '● APPROVED' : s.status === 'pending' ? '⏳ PENDING' : '❌ DECLINED';
-    html += '<div class="bk-card ' + stCls + '">';
+    var editAttr = s.status === 'pending' ? ' data-editid="' + s.id + '" style="cursor:pointer;"' : '';
+    html += '<div class="bk-card ' + stCls + '"' + editAttr + '>';
     html += '<div class="bk-top"><div class="bk-time-box"><div class="bk-time">' + s.time + '</div>';
     html += '<div class="bk-dur">' + s.dur + 'min</div></div>';
     html += '<div><div class="bk-doc">' + (doc ? doc.name : '—') + '</div>';
@@ -1062,6 +1063,16 @@ function renderMyBookings() {
   container.querySelectorAll('.btn-edit-bk').forEach(function(btn) {
     btn.onclick = function() {
       var s = SLOTS.find(function(x) { return x.id === btn.dataset.id; });
+      if (s) { selDocId = s.did; openBookingModal(s.id); }
+    };
+  });
+  // Make whole pending card clickable
+  container.querySelectorAll('.bk-card[data-editid]').forEach(function(card) {
+    card.onclick = function(e) {
+      // Don't trigger if cancel button was clicked
+      if (e.target.classList.contains('btn-cancel-bk')) return;
+      if (e.target.classList.contains('btn-edit-bk')) return;
+      var s = SLOTS.find(function(x) { return x.id === card.dataset.editid; });
       if (s) { selDocId = s.did; openBookingModal(s.id); }
     };
   });
