@@ -1040,14 +1040,14 @@ document.getElementById('btn-send').onclick = function() {
     status: 'pending', rep: name, repUid: curRep.uid,
     co: co, prod: prod, tel: tel, reason: reason, doctorId: doctorId
   }).then(function() {
-    // Notify doctor
+    // Doctor notification (only doctorId, no repUid — stays on doctor side)
     db.collection('notifications').add({
-      doctorId: doctorId, repUid: curRep.uid,
-      msg: '📨 New request: ' + name + ' (' + co + ') — ' + s.time + ' on ' + fmtDate(s.date),
+      doctorId: doctorId,
+      msg: '📨 New request from ' + name + ' (' + co + ') — ' + s.time + ' on ' + fmtDate(s.date) + '. Reason: ' + reason,
       type: 'info', time: nowTime(), unread: true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    // Notify rep
+    // Rep notification (only repUid, no doctorId — stays on rep side)
     db.collection('notifications').add({
       repUid: curRep.uid,
       msg: '⏳ Your request for ' + s.time + ' on ' + fmtDate(s.date) + ' is pending approval.',
@@ -1166,9 +1166,17 @@ function cancelBooking(slotId) {
   db.collection('slots').doc(slotId).update({
     status: 'open', rep: null, repUid: null, co: null, prod: null, tel: null, reason: null
   }).then(function() {
+    // Doctor notification
     db.collection('notifications').add({
-      doctorId: doctorId, repUid: curRep.uid,
-      msg: curRep.name + ' cancelled their ' + s.time + ' booking on ' + fmtDate(s.date) + '. Slot is now open.',
+      doctorId: doctorId,
+      msg: '🚫 CANCELLED: ' + curRep.name + ' (' + (s.co||'') + ') cancelled their ' + s.time + ' appointment on ' + fmtDate(s.date) + '. Slot is now open.',
+      type: 'warn', time: nowTime(), unread: true,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Rep notification
+    db.collection('notifications').add({
+      repUid: curRep.uid,
+      msg: '🚫 You cancelled your ' + s.time + ' booking on ' + fmtDate(s.date) + '. Slot is now open.',
       type: 'warn', time: nowTime(), unread: true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
