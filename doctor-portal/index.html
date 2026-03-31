@@ -251,6 +251,7 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
     </nav>
     <div class="sb-bottom">
       <button class="btn-logout" id="btn-logout"><span>🚪</span>Sign Out</button>
+      <button class="btn-logout" id="btn-delete-practice" style="color:rgba(220,38,38,.5);margin-top:2px;"><span>🗑</span>Delete Practice</button>
     </div>
   </div>
   <div class="main">
@@ -441,6 +442,46 @@ document.getElementById("btn-logout").onclick=function(){
     curUser=null;docProf=null;SLOTS=[];NOTIFS=[];
     document.getElementById("app-screen").style.display="none";
     document.getElementById("auth-screen").style.display="flex";
+  });
+};
+
+document.getElementById("btn-delete-practice").onclick=function(){
+  if(!confirm("⚠️ DELETE PRACTICE\n\nThis will permanently delete your DoctRep account and all your slots. This cannot be undone.\n\nAre you absolutely sure?"))return;
+  if(!confirm("Last warning — all your data will be deleted. Continue?"))return;
+  var uid=curUser.uid;
+  if(unsubSlots)unsubSlots();
+  if(unsubNotifs)unsubNotifs();
+  // Delete all slots for this doctor
+  db.collection("slots").where("doctorId","==",uid).get().then(function(snap){
+    var batch=db.batch();
+    snap.docs.forEach(function(d){batch.delete(d.ref);});
+    return batch.commit();
+  }).then(function(){
+    // Delete all notifications for this doctor
+    return db.collection("notifications").where("doctorId","==",uid).get();
+  }).then(function(snap){
+    var batch=db.batch();
+    snap.docs.forEach(function(d){batch.delete(d.ref);});
+    return batch.commit();
+  }).then(function(){
+    // Delete doctor profile document
+    return db.collection("doctors").doc(uid).delete();
+  }).then(function(){
+    // Delete Firebase Auth account
+    return auth.currentUser.delete();
+  }).then(function(){
+    curUser=null;docProf=null;SLOTS=[];NOTIFS=[];
+    document.getElementById("app-screen").style.display="none";
+    document.getElementById("auth-screen").style.display="flex";
+    alert("Your practice has been deleted from DoctRep SA.");
+  }).catch(function(e){
+    // If auth delete fails (needs recent login), just sign out and show message
+    toast("Profile and data deleted. Please sign in again to complete account removal.","warn");
+    auth.signOut().then(function(){
+      curUser=null;docProf=null;
+      document.getElementById("app-screen").style.display="none";
+      document.getElementById("auth-screen").style.display="flex";
+    });
   });
 };
 
