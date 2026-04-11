@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoctRep SA — Super Admin</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨‍⚕️</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#080f1a;--bg2:#0d1825;--bg3:#111f30;--bg4:#162438;
+  --gold:#f0a500;--gold2:#ffc740;--teal:#0eb8be;--td:#0d7377;
+  --red:#f85149;--green:#3fb950;--amber:#d29922;--blue:#58a6ff;
+  --wh:#f0f6fc;--mu:#8b949e;--dim:#3d4f63;
+  --brd:rgba(240,165,0,.12);--brd2:rgba(240,165,0,.25);
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--wh);min-height:100vh;}
+
+/* ── AUTH ── */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 20% 50%,rgba(14,184,190,.08),transparent 60%),
+             radial-gradient(ellipse at 80% 20%,rgba(240,165,0,.06),transparent 50%),
+             var(--bg);}
+.auth-card{width:100%;max-width:400px;padding:40px;background:var(--bg2);
+  border:1px solid var(--brd2);border-radius:20px;box-shadow:var(--shadow);}
+.auth-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(240,165,0,.1);
+  border:1px solid var(--brd2);border-radius:20px;padding:5px 13px;
+  font-size:.7rem;font-weight:700;color:var(--gold);text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:22px;}
+.auth-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:4px;}
+.auth-logo span{color:var(--teal);}
+.auth-sub{font-size:.78rem;color:var(--mu);margin-bottom:28px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:.68rem;font-weight:600;color:var(--gold);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;}
+.field input{width:100%;padding:11px 14px;background:rgba(255,255,255,.04);
+  border:1.5px solid var(--brd2);border-radius:10px;color:var(--wh);
+  font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;}
+.field input:focus{border-color:var(--gold);}
+.field input::placeholder{color:var(--dim);}
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,#b37800,var(--gold));
+  border:none;border-radius:10px;color:#080f1a;font-family:'Syne',sans-serif;
+  font-size:.9rem;font-weight:800;cursor:pointer;margin-top:4px;letter-spacing:.5px;}
+.btn-login:hover{background:linear-gradient(135deg,var(--gold),var(--gold2));}
+.auth-err{background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.3);
+  color:var(--red);border-radius:8px;padding:9px 13px;font-size:.8rem;
+  margin-bottom:12px;display:none;}
+
+/* ── APP ── */
+#app-screen{display:none;min-height:100vh;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--brd);
+  padding:0 28px;height:58px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:100;}
+.tb-left{display:flex;align-items:center;gap:14px;}
+.tb-logo{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;}
+.tb-logo span{color:var(--teal);}
+.tb-badge{background:rgba(240,165,0,.12);border:1px solid var(--brd2);
+  color:var(--gold);font-size:.65rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:1px;padding:3px 10px;border-radius:20px;}
+.tb-right{display:flex;align-items:center;gap:12px;}
+.tb-admin{font-size:.78rem;color:var(--mu);}
+.btn-signout{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.25);
+  color:var(--red);padding:6px 13px;border-radius:7px;font-size:.76rem;
+  font-weight:600;cursor:pointer;}
+
+/* ── LAYOUT ── */
+.app-body{display:flex;min-height:calc(100vh - 58px);}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--brd);
+  padding:18px 12px;flex-shrink:0;}
+.sb-section{font-size:.62rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:1px;color:var(--gold);padding:8px 10px 4px;margin-top:10px;}
+.sb-btn{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;
+  cursor:pointer;color:rgba(255,255,255,.45);font-size:.82rem;font-weight:500;
+  margin-bottom:2px;border:none;background:none;width:100%;text-align:left;}
+.sb-btn:hover{background:rgba(255,255,255,.05);color:var(--wh);}
+.sb-btn.active{background:rgba(240,165,0,.1);color:var(--gold);}
+.sb-ic{font-size:.9rem;width:18px;}
+.sb-count{margin-left:auto;background:var(--red);color:#fff;font-size:.6rem;
+  font-weight:700;border-radius:8px;padding:2px 6px;display:none;}
+.main{flex:1;padding:24px 28px;overflow-y:auto;}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat{background:var(--bg2);border:1px solid var(--brd);border-radius:13px;
+  padding:18px;position:relative;overflow:hidden;}
+.stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.s-gold::after{background:var(--gold);}
+.s-teal::after{background:var(--teal);}
+.s-green::after{background:var(--green);}
+.s-red::after{background:var(--red);}
+.stat-num{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;line-height:1;}
+.stat-lbl{font-size:.72rem;color:var(--mu);margin-top:5px;}
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.active{display:block;}
+.page-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;
+  margin-bottom:18px;display:flex;align-items:center;gap:10px;}
+.page-title span{font-size:.72rem;font-weight:500;color:var(--mu);
+  background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:3px 9px;}
+
+/* ── TABLE ── */
+.tbl-wrap{background:var(--bg2);border:1px solid var(--brd);border-radius:13px;overflow:hidden;}
+.tbl-toolbar{padding:12px 16px;border-bottom:1px solid var(--brd);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.tbl-search{flex:1;max-width:280px;padding:7px 12px;background:var(--bg3);
+  border:1px solid var(--brd);border-radius:8px;color:var(--wh);
+  font-family:'DM Sans',sans-serif;font-size:.8rem;outline:none;}
+.tbl-search::placeholder{color:var(--dim);}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--bg3);border-bottom:1px solid var(--brd);}
+th{font-size:.67rem;font-weight:700;color:var(--gold);text-transform:uppercase;
+  letter-spacing:.7px;padding:10px 14px;text-align:left;white-space:nowrap;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.03);}
+td{padding:11px 14px;font-size:.8rem;color:var(--mu);vertical-align:middle;}
+td.primary{color:var(--wh);font-weight:500;}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;
+  font-size:.68rem;font-weight:700;}
+.b-green{background:rgba(63,185,80,.12);color:var(--green);}
+.b-amber{background:rgba(210,153,34,.12);color:var(--amber);}
+.b-blue{background:rgba(88,166,255,.12);color:var(--blue);}
+.b-red{background:rgba(248,81,73,.12);color:var(--red);}
+.b-dim{background:rgba(255,255,255,.06);color:var(--mu);}
+
+/* ── ACTION BUTTONS ── */
+.act-btn{padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:600;
+  cursor:pointer;border:none;margin-right:4px;}
+.ab-red{background:rgba(248,81,73,.1);color:var(--red);border:1px solid rgba(248,81,73,.25);}
+.ab-gold{background:rgba(240,165,0,.1);color:var(--gold);border:1px solid var(--brd2);}
+.ab-teal{background:rgba(14,184,190,.1);color:var(--teal);border:1px solid rgba(14,184,190,.2);}
+
+/* ── EDIT MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;
+  display:none;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal-box{background:var(--bg2);border:1px solid var(--brd2);border-radius:16px;
+  padding:26px 28px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.modal-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;
+  color:var(--gold);margin-bottom:18px;}
+.mf{margin-bottom:12px;}
+.mf label{display:block;font-size:.67rem;font-weight:600;color:var(--gold);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.mf input,.mf select{width:100%;padding:9px 12px;background:var(--bg3);
+  border:1.5px solid var(--brd2);border-radius:8px;color:var(--wh);
+  font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;}
+.mf input:focus,.mf select:focus{border-color:var(--gold);}
+.mf select option{background:var(--bg3);}
+.modal-acts{display:flex;gap:9px;margin-top:18px;justify-content:flex-end;}
+.btn-save{padding:9px 20px;background:linear-gradient(135deg,#b37800,var(--gold));
+  border:none;border-radius:8px;color:#080f1a;font-family:'Syne',sans-serif;
+  font-size:.84rem;font-weight:800;cursor:pointer;}
+.btn-close-modal{padding:9px 16px;background:rgba(255,255,255,.06);
+  border:1px solid var(--brd);border-radius:8px;color:var(--mu);
+  font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;}
+
+/* ── CONFIRM ── */
+.conf-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;
+  display:none;align-items:center;justify-content:center;}
+.conf-bg.open{display:flex;}
+.conf-box{background:var(--bg2);border:1px solid rgba(248,81,73,.3);border-radius:14px;
+  padding:24px 26px;max-width:380px;width:100%;}
+.conf-box h3{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;
+  color:var(--red);margin-bottom:8px;}
+.conf-box p{font-size:.82rem;color:var(--mu);margin-bottom:18px;line-height:1.6;}
+.conf-acts{display:flex;gap:9px;justify-content:flex-end;}
+.btn-conf-yes{padding:8px 18px;background:var(--red);border:none;border-radius:8px;
+  color:#fff;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;}
+.btn-conf-no{padding:8px 14px;background:rgba(255,255,255,.06);border:1px solid var(--brd);
+  border-radius:8px;color:var(--mu);font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--bg2);color:var(--wh);border-radius:10px;padding:11px 16px;
+  font-size:.8rem;box-shadow:var(--shadow);min-width:240px;border-left:3px solid var(--gold);}
+.toast.ok{border-color:var(--green);}
+.toast.err{border-color:var(--red);}
+.toast.warn{border-color:var(--amber);}
+
+.empty-state{text-align:center;padding:48px 20px;color:var(--dim);}
+.empty-state .ei{font-size:2rem;margin-bottom:8px;}
+.empty-state .et{font-size:.82rem;}
+.loading{text-align:center;padding:32px;color:var(--mu);font-size:.82rem;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-badge">🔐 Super Admin Access</div>
+    <div class="auth-logo">Doct<span>Rep</span> <span style="color:var(--gold);font-size:1rem;">SA</span></div>
+    <div class="auth-sub">Restricted — authorised personnel only</div>
+    <div id="auth-err" class="auth-err"></div>
+    <div class="field"><label>Admin Email</label>
+      <input type="email" id="si-email" placeholder="admin@doctrep.co.za"></div>
+    <div class="field"><label>Password</label>
+      <input type="password" id="si-pw" placeholder="••••••••"></div>
+    <button class="btn-login" id="btn-login">🔐 Access Admin Panel</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-logo">Doct<span>Rep</span></div>
+      <div class="tb-badge">⚡ Super Admin</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-admin" id="tb-admin-email">—</div>
+      <button class="btn-signout" id="btn-signout">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="sidebar">
+      <div class="sb-section">Overview</div>
+      <button class="sb-btn active" id="nav-dashboard"><span class="sb-ic">📊</span>Dashboard</button>
+
+      <div class="sb-section">Manage</div>
+      <button class="sb-btn" id="nav-doctors"><span class="sb-ic">👨‍⚕️</span>Doctors
+        <span class="sb-count" id="cnt-doctors">0</span></button>
+      <button class="sb-btn" id="nav-reps"><span class="sb-ic">💼</span>Reps
+        <span class="sb-count" id="cnt-reps">0</span></button>
+      <button class="sb-btn" id="nav-slots"><span class="sb-ic">📅</span>All Slots</button>
+      <button class="sb-btn" id="nav-notifs"><span class="sb-ic">🔔</span>Notifications</button>
+    </div>
+
+    <div class="main">
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-row">
+          <div class="stat s-gold">
+            <div class="stat-num" id="st-doctors">—</div>
+            <div class="stat-lbl">Registered Doctors</div>
+          </div>
+          <div class="stat s-teal">
+            <div class="stat-num" id="st-reps">—</div>
+            <div class="stat-lbl">Registered Reps</div>
+          </div>
+          <div class="stat s-green">
+            <div class="stat-num" id="st-slots">—</div>
+            <div class="stat-lbl">Total Slots</div>
+          </div>
+          <div class="stat s-red">
+            <div class="stat-num" id="st-pending">—</div>
+            <div class="stat-lbl">Pending Requests</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+          <div class="tbl-wrap">
+            <div class="tbl-toolbar"><span style="font-size:.8rem;font-weight:600;color:var(--gold);">Recent Doctors</span></div>
+            <div id="dash-doctors"></div>
+          </div>
+          <div class="tbl-wrap">
+            <div class="tbl-toolbar"><span style="font-size:.8rem;font-weight:600;color:var(--gold);">Recent Reps</span></div>
+            <div id="dash-reps"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCTORS -->
+      <div class="page" id="page-doctors">
+        <div class="page-title">👨‍⚕️ Doctors <span id="doctors-count">0</span></div>
+        <div class="tbl-wrap">
+          <div class="tbl-toolbar">
+            <input class="tbl-search" id="search-doctors" placeholder="🔍 Search doctors…">
+          </div>
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Type</th><th>Practice</th><th>City</th><th>Email</th><th>Phone</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="tbody-doctors"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- REPS -->
+      <div class="page" id="page-reps">
+        <div class="page-title">💼 Reps <span id="reps-count">0</span></div>
+        <div class="tbl-wrap">
+          <div class="tbl-toolbar">
+            <input class="tbl-search" id="search-reps" placeholder="🔍 Search reps…">
+          </div>
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>SA ID</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="tbody-reps"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SLOTS -->
+      <div class="page" id="page-slots">
+        <div class="page-title">📅 All Slots <span id="slots-count">0</span></div>
+        <div class="tbl-wrap">
+          <div class="tbl-toolbar">
+            <input class="tbl-search" id="search-slots" placeholder="🔍 Search slots…">
+          </div>
+          <table>
+            <thead><tr>
+              <th>Date</th><th>Time</th><th>Dur</th><th>Status</th><th>Doctor</th><th>Rep</th><th>Company</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="tbody-slots"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="page" id="page-notifs">
+        <div class="page-title">🔔 All Notifications <span id="notifs-count">0</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Message</th><th>Type</th><th>Time</th><th>For</th><th>Actions</th></tr></thead>
+            <tbody id="tbody-notifs"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT DOCTOR MODAL -->
+<div class="modal-bg" id="modal-doctor">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Edit Doctor Profile</div>
+    <input type="hidden" id="edit-doc-id">
+    <div class="mf"><label>First Name</label><input id="edit-doc-first"></div>
+    <div class="mf"><label>Last Name</label><input id="edit-doc-last"></div>
+    <div class="mf"><label>Specialty</label>
+      <select id="edit-doc-type">
+        <option>GP</option><option>Cardiologist</option><option>Oncologist</option>
+        <option>Neurologist</option><option>Paediatrician</option><option>Gynaecologist</option>
+        <option>Dermatologist</option><option>Psychiatrist</option><option>Surgeon</option>
+        <option>Other Specialist</option>
+      </select></div>
+    <div class="mf"><label>Practice / Hospital</label><input id="edit-doc-place"></div>
+    <div class="mf"><label>City</label><input id="edit-doc-city"></div>
+    <div class="mf"><label>Province</label>
+      <select id="edit-doc-prov">
+        <option>KZN</option><option>Gauteng</option><option>Western Cape</option>
+        <option>Eastern Cape</option><option>Limpopo</option><option>Mpumalanga</option>
+        <option>Free State</option><option>North West</option><option>Northern Cape</option>
+      </select></div>
+    <div class="mf"><label>Phone Number</label><input id="edit-doc-tel" placeholder="031 000 0000"></div>
+    <div class="mf"><label>Email</label><input type="email" id="edit-doc-email"></div>
+    <div class="modal-acts">
+      <button class="btn-close-modal" id="close-doc-modal">Cancel</button>
+      <button class="btn-save" id="save-doc">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT REP MODAL -->
+<div class="modal-bg" id="modal-rep">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Edit Rep Profile</div>
+    <input type="hidden" id="edit-rep-id">
+    <div class="mf"><label>Full Name</label><input id="edit-rep-name"></div>
+    <div class="mf"><label>Company</label><input id="edit-rep-co"></div>
+    <div class="mf"><label>Email</label><input type="email" id="edit-rep-email"></div>
+    <div class="mf"><label>Phone</label><input id="edit-rep-tel"></div>
+    <div class="mf"><label>SA ID Number</label><input id="edit-rep-said"></div>
+    <div class="modal-acts">
+      <button class="btn-close-modal" id="close-rep-modal">Cancel</button>
+      <button class="btn-save" id="save-rep">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="conf-bg" id="conf-modal">
+  <div class="conf-box">
+    <h3>⚠️ Confirm Delete</h3>
+    <p id="conf-msg">This cannot be undone.</p>
+    <div class="conf-acts">
+      <button class="btn-conf-no" id="conf-no">Cancel</button>
+      <button class="btn-conf-yes" id="conf-yes">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ══════════════════════════════════════
+//  FIREBASE — DoctRep SA project
+// ══════════════════════════════════════
+firebase.initializeApp({
+  apiKey:            "AIzaSyBbrLQTnWHFVxlJMi5eJkVVnH1Gx_L_nF0",
+  authDomain:        "doctrep-sa.firebaseapp.com",
+  projectId:         "doctrep-sa",
+  storageBucket:     "doctrep-sa.firebasestorage.app",
+  messagingSenderId: "122217379248",
+  appId:             "1:122217379248:web:4a5bcbee653de6daf1d275"
+});
+var auth = firebase.auth();
+var db   = firebase.firestore();
+
+// ══════════════════════════════════════
+//  SUPER ADMIN CONFIG
+//  Change this to your admin email
+// ══════════════════════════════════════
+var ADMIN_EMAIL = 'eagle.electrical01@gmail.com';
+
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+var DOCTORS=[], REPS=[], SLOTS=[], NOTIFS=[];
+var pendingDelete = null;
+var unsubDoctors, unsubReps, unsubSlots, unsubNotifs;
+
+// ══════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════
+function toast(msg, type) {
+  var wrap = document.getElementById('toast-wrap');
+  var t = document.createElement('div');
+  t.className = 'toast ' + (type||'ok');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .3s';
+    setTimeout(function(){ t.remove(); }, 300); }, 3500);
+}
+
+// ══════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════
+document.getElementById('btn-login').onclick = function() {
+  var email = document.getElementById('si-email').value.trim();
+  var pw    = document.getElementById('si-pw').value;
+  if (!email || !pw) { showErr('Please enter email and password.'); return; }
+  if (email !== ADMIN_EMAIL) { showErr('Access denied. Not an admin account.'); return; }
+  auth.signInWithEmailAndPassword(email, pw)
+    .then(function(cred) { launchAdmin(cred.user); })
+    .catch(function(e) {
+      var m = {'auth/wrong-password':'Incorrect password.','auth/invalid-credential':'Incorrect email or password.','auth/user-not-found':'No account found.'};
+      showErr(m[e.code] || 'Login failed. Please try again.');
+    });
+};
+
+function showErr(msg) {
+  var el = document.getElementById('auth-err');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+auth.onAuthStateChanged(function(user) {
+  var authVisible = document.getElementById('auth-screen').style.display !== 'none';
+  if (user && user.email === ADMIN_EMAIL && !authVisible) {
+    launchAdmin(user);
+  }
+});
+
+document.getElementById('btn-signout').onclick = function() {
+  if(unsubDoctors) unsubDoctors();
+  if(unsubReps)    unsubReps();
+  if(unsubSlots)   unsubSlots();
+  if(unsubNotifs)  unsubNotifs();
+  auth.signOut().then(function() {
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+  });
+};
+
+function launchAdmin(user) {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display  = 'block';
+  document.getElementById('tb-admin-email').textContent = user.email;
+  subscribeAll();
+}
+
+// ══════════════════════════════════════
+//  SUBSCRIPTIONS
+// ══════════════════════════════════════
+function subscribeAll() {
+  unsubDoctors = db.collection('doctors').onSnapshot(function(snap) {
+    DOCTORS = snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
+    renderAll();
+  });
+  unsubReps = db.collection('reps').onSnapshot(function(snap) {
+    REPS = snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
+    renderAll();
+  });
+  unsubSlots = db.collection('slots').onSnapshot(function(snap) {
+    SLOTS = snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); })
+      .sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
+    renderAll();
+  });
+  unsubNotifs = db.collection('notifications').onSnapshot(function(snap) {
+    NOTIFS = snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
+    renderAll();
+  });
+}
+
+// ══════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════
+['dashboard','doctors','reps','slots','notifs'].forEach(function(name) {
+  document.getElementById('nav-' + name).onclick = function() { goPage(name); };
+});
+
+function goPage(name) {
+  ['dashboard','doctors','reps','slots','notifs'].forEach(function(p) {
+    document.getElementById('page-' + p).classList.toggle('active', p === name);
+    document.getElementById('nav-' + p).classList.toggle('active', p === name);
+  });
+}
+
+// ══════════════════════════════════════
+//  RENDER ALL
+// ══════════════════════════════════════
+function renderAll() {
+  // Stats
+  document.getElementById('st-doctors').textContent = DOCTORS.length;
+  document.getElementById('st-reps').textContent    = REPS.length;
+  document.getElementById('st-slots').textContent   = SLOTS.length;
+  document.getElementById('st-pending').textContent = SLOTS.filter(function(s){ return s.status==='pending'; }).length;
+  document.getElementById('doctors-count').textContent = DOCTORS.length;
+  document.getElementById('reps-count').textContent    = REPS.length;
+  document.getElementById('slots-count').textContent   = SLOTS.length;
+  document.getElementById('notifs-count').textContent  = NOTIFS.length;
+
+  // Sidebar counts
+  var dc = document.getElementById('cnt-doctors');
+  dc.textContent = DOCTORS.length; dc.style.display = 'inline-flex';
+  var rc = document.getElementById('cnt-reps');
+  rc.textContent = REPS.length; rc.style.display = 'inline-flex';
+
+  renderDashboard();
+  renderDoctors(document.getElementById('search-doctors').value);
+  renderReps(document.getElementById('search-reps').value);
+  renderSlots(document.getElementById('search-slots').value);
+  renderNotifs();
+}
+
+// ══════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════
+function renderDashboard() {
+  var dEl = document.getElementById('dash-doctors');
+  var rEl = document.getElementById('dash-reps');
+  if (!DOCTORS.length) {
+    dEl.innerHTML = '<div class="empty-state"><div class="ei">👨‍⚕️</div><div class="et">No doctors yet</div></div>';
+  } else {
+    dEl.innerHTML = '<table><tbody>' + DOCTORS.slice(0,5).map(function(d) {
+      return '<tr><td class="primary">' + (d.name||'—') + '</td><td>' + (d.type||'—') + '</td><td>' + (d.city||'—') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+  if (!REPS.length) {
+    rEl.innerHTML = '<div class="empty-state"><div class="ei">💼</div><div class="et">No reps yet</div></div>';
+  } else {
+    rEl.innerHTML = '<table><tbody>' + REPS.slice(0,5).map(function(r) {
+      return '<tr><td class="primary">' + (r.name||'—') + '</td><td>' + (r.co||'—') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+}
+
+// ══════════════════════════════════════
+//  DOCTORS TABLE
+// ══════════════════════════════════════
+document.getElementById('search-doctors').oninput = function() { renderDoctors(this.value); };
+
+function renderDoctors(q) {
+  q = (q||'').toLowerCase();
+  var list = q ? DOCTORS.filter(function(d) {
+    return (d.name||'').toLowerCase().includes(q) ||
+           (d.city||'').toLowerCase().includes(q) ||
+           (d.type||'').toLowerCase().includes(q);
+  }) : DOCTORS;
+  var tbody = document.getElementById('tbody-doctors');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--dim);">No doctors found.</td></tr>'; return; }
+  tbody.innerHTML = list.map(function(d) {
+    return '<tr>' +
+      '<td class="primary">' + (d.name||'—') + '</td>' +
+      '<td>' + (d.type||'—') + '</td>' +
+      '<td>' + (d.place||'—') + '</td>' +
+      '<td>' + (d.city||'—') + '</td>' +
+      '<td>' + (d.email||'—') + '</td>' +
+      '<td>' + (d.tel||'—') + '</td>' +
+      '<td>' +
+        '<button class="act-btn ab-gold" data-id="' + d.id + '" data-action="edit-doc">✏️ Edit</button>' +
+        '<button class="act-btn ab-red" data-id="' + d.id + '" data-name="' + (d.name||'Doctor') + '" data-action="del-doc">🗑 Delete</button>' +
+      '</td></tr>';
+  }).join('');
+  wireTableBtns(tbody);
+}
+
+// ══════════════════════════════════════
+//  REPS TABLE
+// ══════════════════════════════════════
+document.getElementById('search-reps').oninput = function() { renderReps(this.value); };
+
+function renderReps(q) {
+  q = (q||'').toLowerCase();
+  var list = q ? REPS.filter(function(r) {
+    return (r.name||'').toLowerCase().includes(q) ||
+           (r.co||'').toLowerCase().includes(q) ||
+           (r.email||'').toLowerCase().includes(q);
+  }) : REPS;
+  var tbody = document.getElementById('tbody-reps');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--dim);">No reps found.</td></tr>'; return; }
+  tbody.innerHTML = list.map(function(r) {
+    return '<tr>' +
+      '<td class="primary">' + (r.name||'—') + '</td>' +
+      '<td>' + (r.co||'—') + '</td>' +
+      '<td>' + (r.email||'—') + '</td>' +
+      '<td>' + (r.tel||'—') + '</td>' +
+      '<td>' + (r.saId||'—') + '</td>' +
+      '<td>' +
+        '<button class="act-btn ab-gold" data-id="' + r.id + '" data-action="edit-rep">✏️ Edit</button>' +
+        '<button class="act-btn ab-red" data-id="' + r.id + '" data-name="' + (r.name||'Rep') + '" data-action="del-rep">🗑 Delete</button>' +
+      '</td></tr>';
+  }).join('');
+  wireTableBtns(tbody);
+}
+
+// ══════════════════════════════════════
+//  SLOTS TABLE
+// ══════════════════════════════════════
+document.getElementById('search-slots').oninput = function() { renderSlots(this.value); };
+
+function renderSlots(q) {
+  q = (q||'').toLowerCase();
+  var list = q ? SLOTS.filter(function(s) {
+    return (s.rep||'').toLowerCase().includes(q) ||
+           (s.co||'').toLowerCase().includes(q) ||
+           (s.date||'').includes(q);
+  }) : SLOTS;
+  var tbody = document.getElementById('tbody-slots');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--dim);">No slots found.</td></tr>'; return; }
+  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  tbody.innerHTML = list.map(function(s) {
+    var dt = new Date(s.date+'T00:00:00');
+    var fmtDate = days[dt.getDay()]+' '+dt.getDate()+' '+months[dt.getMonth()];
+    var doc = DOCTORS.find(function(d){ return d.id===s.doctorId; });
+    var stBadge = s.status==='open'?'<span class="badge b-green">Open</span>':
+                  s.status==='booked'?'<span class="badge b-blue">Confirmed</span>':
+                  s.status==='pending'?'<span class="badge b-amber">Pending</span>':
+                  '<span class="badge b-dim">'+s.status+'</span>';
+    return '<tr>' +
+      '<td class="primary">' + fmtDate + '</td>' +
+      '<td>' + s.time + '</td>' +
+      '<td>' + s.dur + 'min</td>' +
+      '<td>' + stBadge + '</td>' +
+      '<td>' + (doc?doc.name:'—') + '</td>' +
+      '<td>' + (s.rep||'—') + '</td>' +
+      '<td>' + (s.co||'—') + '</td>' +
+      '<td><button class="act-btn ab-red" data-id="' + s.id + '" data-name="slot at ' + s.time + ' on ' + fmtDate + '" data-action="del-slot">🗑 Delete</button></td>' +
+      '</tr>';
+  }).join('');
+  wireTableBtns(tbody);
+}
+
+// ══════════════════════════════════════
+//  NOTIFICATIONS TABLE
+// ══════════════════════════════════════
+function renderNotifs() {
+  var tbody = document.getElementById('tbody-notifs');
+  if (!NOTIFS.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--dim);">No notifications.</td></tr>'; return; }
+  tbody.innerHTML = NOTIFS.map(function(n) {
+    var forLabel = n.doctorId && n.repUid ? 'Both' : n.doctorId ? 'Doctor' : 'Rep';
+    var typeBadge = n.type==='ok'?'<span class="badge b-green">✅ OK</span>':
+                    n.type==='err'?'<span class="badge b-red">❌ Error</span>':
+                    n.type==='warn'?'<span class="badge b-amber">⚠️ Warn</span>':
+                    '<span class="badge b-dim">ℹ️ Info</span>';
+    return '<tr>' +
+      '<td class="primary" style="max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (n.msg||'—') + '</td>' +
+      '<td>' + typeBadge + '</td>' +
+      '<td>' + (n.time||'—') + '</td>' +
+      '<td><span class="badge b-dim">' + forLabel + '</span></td>' +
+      '<td><button class="act-btn ab-red" data-id="' + n.id + '" data-name="this notification" data-action="del-notif">🗑</button></td>' +
+      '</tr>';
+  }).join('');
+  wireTableBtns(tbody);
+}
+
+// ══════════════════════════════════════
+//  WIRE TABLE BUTTONS
+// ══════════════════════════════════════
+function wireTableBtns(tbody) {
+  tbody.querySelectorAll('[data-action]').forEach(function(btn) {
+    btn.onclick = function() {
+      var action = this.dataset.action;
+      var id     = this.dataset.id;
+      var name   = this.dataset.name || 'this item';
+      if (action === 'edit-doc')  openEditDoctor(id);
+      if (action === 'edit-rep')  openEditRep(id);
+      if (action === 'del-doc')   openConfirm('Delete doctor "' + name + '"?', function(){ deleteDoctor(id); });
+      if (action === 'del-rep')   openConfirm('Delete rep "' + name + '"?', function(){ deleteRep(id); });
+      if (action === 'del-slot')  openConfirm('Delete ' + name + '?', function(){ deleteSlot(id); });
+      if (action === 'del-notif') openConfirm('Delete this notification?', function(){ deleteNotif(id); });
+    };
+  });
+}
+
+// ══════════════════════════════════════
+//  EDIT DOCTOR
+// ══════════════════════════════════════
+function openEditDoctor(id) {
+  var d = DOCTORS.find(function(x){ return x.id===id; });
+  if (!d) return;
+  document.getElementById('edit-doc-id').value    = id;
+  document.getElementById('edit-doc-first').value = d.first || '';
+  document.getElementById('edit-doc-last').value  = d.last  || '';
+  document.getElementById('edit-doc-type').value  = d.type  || 'GP';
+  document.getElementById('edit-doc-place').value = d.place || '';
+  document.getElementById('edit-doc-city').value  = d.city  || '';
+  document.getElementById('edit-doc-prov').value  = d.province || 'KZN';
+  document.getElementById('edit-doc-tel').value   = d.tel   || '';
+  document.getElementById('edit-doc-email').value = d.email || '';
+  document.getElementById('modal-doctor').classList.add('open');
+}
+document.getElementById('close-doc-modal').onclick = function() { document.getElementById('modal-doctor').classList.remove('open'); };
+document.getElementById('save-doc').onclick = function() {
+  var id    = document.getElementById('edit-doc-id').value;
+  var first = document.getElementById('edit-doc-first').value.trim();
+  var last  = document.getElementById('edit-doc-last').value.trim();
+  var data  = {
+    first:    first,
+    last:     last,
+    name:     'Dr. ' + first + ' ' + last,
+    type:     document.getElementById('edit-doc-type').value,
+    place:    document.getElementById('edit-doc-place').value.trim(),
+    city:     document.getElementById('edit-doc-city').value.trim(),
+    province: document.getElementById('edit-doc-prov').value,
+    tel:      document.getElementById('edit-doc-tel').value.trim(),
+    email:    document.getElementById('edit-doc-email').value.trim()
+  };
+  db.collection('doctors').doc(id).update(data).then(function() {
+    document.getElementById('modal-doctor').classList.remove('open');
+    toast('✅ Doctor updated successfully.', 'ok');
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+};
+
+// ══════════════════════════════════════
+//  EDIT REP
+// ══════════════════════════════════════
+function openEditRep(id) {
+  var r = REPS.find(function(x){ return x.id===id; });
+  if (!r) return;
+  document.getElementById('edit-rep-id').value    = id;
+  document.getElementById('edit-rep-name').value  = r.name  || '';
+  document.getElementById('edit-rep-co').value    = r.co    || '';
+  document.getElementById('edit-rep-email').value = r.email || '';
+  document.getElementById('edit-rep-tel').value   = r.tel   || '';
+  document.getElementById('edit-rep-said').value  = r.saId  || '';
+  document.getElementById('modal-rep').classList.add('open');
+}
+document.getElementById('close-rep-modal').onclick = function() { document.getElementById('modal-rep').classList.remove('open'); };
+document.getElementById('save-rep').onclick = function() {
+  var id   = document.getElementById('edit-rep-id').value;
+  var data = {
+    name:  document.getElementById('edit-rep-name').value.trim(),
+    co:    document.getElementById('edit-rep-co').value.trim(),
+    email: document.getElementById('edit-rep-email').value.trim(),
+    tel:   document.getElementById('edit-rep-tel').value.trim(),
+    saId:  document.getElementById('edit-rep-said').value.trim()
+  };
+  db.collection('reps').doc(id).update(data).then(function() {
+    document.getElementById('modal-rep').classList.remove('open');
+    toast('✅ Rep updated successfully.', 'ok');
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+};
+
+// ══════════════════════════════════════
+//  DELETE FUNCTIONS
+// ══════════════════════════════════════
+function deleteDoctor(id) {
+  // Delete doctor doc + all their slots + all their notifications
+  db.collection('slots').where('doctorId','==',id).get().then(function(snap) {
+    var batch = db.batch();
+    snap.docs.forEach(function(d){ batch.delete(d.ref); });
+    return batch.commit();
+  }).then(function() {
+    return db.collection('notifications').where('doctorId','==',id).get();
+  }).then(function(snap) {
+    var batch = db.batch();
+    snap.docs.forEach(function(d){ batch.delete(d.ref); });
+    return batch.commit();
+  }).then(function() {
+    return db.collection('doctors').doc(id).delete();
+  }).then(function() {
+    toast('🗑 Doctor and all their data deleted.', 'warn');
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+function deleteRep(id) {
+  db.collection('notifications').where('repUid','==',id).get().then(function(snap) {
+    var batch = db.batch();
+    snap.docs.forEach(function(d){ batch.delete(d.ref); });
+    return batch.commit();
+  }).then(function() {
+    return db.collection('reps').doc(id).delete();
+  }).then(function() {
+    toast('🗑 Rep deleted.', 'warn');
+  }).catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+function deleteSlot(id) {
+  db.collection('slots').doc(id).delete()
+    .then(function(){ toast('🗑 Slot deleted.', 'warn'); })
+    .catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+function deleteNotif(id) {
+  db.collection('notifications').doc(id).delete()
+    .then(function(){ toast('🗑 Notification deleted.', 'warn'); })
+    .catch(function(e){ toast('Error: ' + e.message, 'err'); });
+}
+
+// ══════════════════════════════════════
+//  CONFIRM MODAL
+// ══════════════════════════════════════
+function openConfirm(msg, fn) {
+  document.getElementById('conf-msg').textContent = msg;
+  pendingDelete = fn;
+  document.getElementById('conf-modal').classList.add('open');
+}
+document.getElementById('conf-no').onclick  = function() { document.getElementById('conf-modal').classList.remove('open'); pendingDelete=null; };
+document.getElementById('conf-yes').onclick = function() {
+  document.getElementById('conf-modal').classList.remove('open');
+  if (pendingDelete) { pendingDelete(); pendingDelete=null; }
+};
+</script>
+</body>
+</html>
