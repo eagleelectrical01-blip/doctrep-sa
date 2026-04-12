@@ -337,12 +337,12 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
 
 <script>
 firebase.initializeApp({
-  apiKey:"AIzaSyBESylVeQPSsMgd0CMy3fb-f4xQwvZvtxM",
-  authDomain:"fix-your-home-book-an-ar-ad6bc.firebaseapp.com",
-  projectId:"fix-your-home-book-an-ar-ad6bc",
-  storageBucket:"fix-your-home-book-an-ar-ad6bc.firebasestorage.app",
-  messagingSenderId:"985512922874",
-  appId:"1:985512922874:web:3cc4610f84e01bfb7d4343"
+  apiKey:"AIzaSyBbrLQTnWHFVxlJMi5eJkVVnH1Gx_L_nF0",
+  authDomain:"doctrep-sa.firebaseapp.com",
+  projectId:"doctrep-sa",
+  storageBucket:"doctrep-sa.firebasestorage.app",
+  messagingSenderId:"122217379248",
+  appId:"1:122217379248:web:4a5bcbee653de6daf1d275"
 });
 var auth=firebase.auth();
 var db=firebase.firestore();
@@ -404,7 +404,8 @@ document.getElementById("btn-reg").onclick=function(){
       var tel=document.getElementById("reg-tel").value.trim();
       docProf={uid:curUser.uid,first:first,last:last,name:"Dr. "+first+" "+last,type:type,place:place,city:city,province:prov,email:email,tel:tel};
       db.collection("doctors").doc(curUser.uid).set(Object.assign({},docProf,{createdAt:firebase.firestore.FieldValue.serverTimestamp()}))
-        .then(function(){launchApp();toast("Welcome to DoctRep SA, Dr. "+last+"!","ok");});
+        .then(function(){launchApp();toast("Welcome to DoctRep SA, Dr. "+last+"!","ok");})
+        .catch(function(e){showErr("Account created but profile save failed: "+e.message);});
     })
     .catch(function(e){showErr(friendlyErr(e.code));});
 };
