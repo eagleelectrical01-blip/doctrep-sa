@@ -1,23 +1,4 @@
-const CACHE = 'doctrep-doctor-v1';
-const ASSETS = [
-  '/doctor-portal/index.html',
-  '/doctor-portal/manifest.json',
-];
-
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
-});
+const CACHE='doctrep-doctor-v1';
+self.addEventListener('install',function(e){self.skipWaiting();});
+self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));}));self.clients.claim();});
+self.addEventListener('fetch',function(e){if(e.request.url.includes('firestore')||e.request.url.includes('firebase')||e.request.url.includes('googleapis'))return;e.respondWith(fetch(e.request).catch(function(){return caches.match(e.request);}));});

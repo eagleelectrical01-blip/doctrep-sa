@@ -1,24 +1,14 @@
 {
   "name": "DoctRep SA — Doctor Portal",
   "short_name": "DoctRep",
-  "description": "Manage your medical rep slots and appointments",
-  "start_url": "/doctor-portal/index.html",
+  "description": "Medical rep appointment management for South African doctors",
+  "start_url": "/doctrep-sa/doctor-portal/",
   "display": "standalone",
   "background_color": "#0f1e2d",
   "theme_color": "#0D7377",
-  "orientation": "landscape-primary",
+  "orientation": "landscape",
   "icons": [
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
   ]
 }
