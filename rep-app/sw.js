@@ -1,5 +1,32 @@
+// DoctRep SA — Rep App Service Worker
 const CACHE = 'doctrep-rep-v1';
-const ASSETS = ['/rep-app/index.html', '/rep-app/manifest.json'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); self.clients.claim(); });
-self.addEventListener('fetch', e => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
+
+self.addEventListener('install', function(e) {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function(e) {
+  e.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(k) { return k !== CACHE; })
+            .map(function(k) { return caches.delete(k); })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', function(e) {
+  // Network first for Firebase, cache first for static assets
+  if (e.request.url.includes('firestore') || 
+      e.request.url.includes('firebase') ||
+      e.request.url.includes('googleapis')) {
+    return; // Let Firebase handle its own requests
+  }
+  e.respondWith(
+    fetch(e.request).catch(function() {
+      return caches.match(e.request);
+    })
+  );
+});
