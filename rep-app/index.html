@@ -382,7 +382,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--wh);min-h
   <div id="tab-find" class="tab-content active">
     <div class="app-header">
       <div class="header-top">
-        <div class="app-logo">Doct<span>Rep</span></div>
+        <div style="display:flex;align-items:center;gap:9px;">
+          <button id="btn-back-home" style="display:none;background:rgba(255,255,255,.12);border:none;border-radius:8px;padding:6px 11px;color:var(--wh);font-size:.78rem;font-weight:600;cursor:pointer;">← Back</button>
+          <div class="app-logo">Doct<span>Rep</span></div>
+        </div>
         <button class="hmb-btn" id="hmb-btn">
           <span></span><span></span><span></span>
         </button>
@@ -724,13 +727,14 @@ function subscribeToData() {
     DOCS = snap.docs.map(function(d) {
       var data = d.data();
       return {
-        id:    d.id,
-        name:  data.name || ('Dr. ' + (data.first||'') + ' ' + (data.last||'')).trim(),
-        type:  data.type || data.specialty || 'GP',
-        place: data.place || data.practiceName || '',
-        city:  data.city || '',
-        tel:   data.tel || data.phone || data.contactNumber || '',
-        icon:  iconFor(data.type || '')
+        id:       d.id,
+        name:     data.name || ('Dr. ' + (data.first||'') + ' ' + (data.last||'')).trim(),
+        type:     data.type || data.specialty || 'GP',
+        place:    data.place || data.practiceName || '',
+        city:     data.city || '',
+        province: data.province || '',
+        tel:      data.tel || data.phone || data.contactNumber || '',
+        icon:     iconFor(data.type || '')
       };
     });
     renderDrawer('');
@@ -830,6 +834,8 @@ function section(title, docs) {
       var openCount = SLOTS.filter(function(s) { return s.did === d.id && s.status === 'open'; }).length;
       var slotLabel = openCount > 0 ? openCount + ' open' : '—';
       var slotClass = openCount > 0 ? '' : 'empty';
+      var mapQuery=encodeURIComponent((d.place||d.name)+' '+(d.city||'')+' '+(d.province||'')+' South Africa');
+      var mapUrl='https://www.google.com/maps/search/?api=1&query='+mapQuery;
       html += '<div class="doc-item' + (d.id === selDocId ? ' selected' : '') + '" style="display:flex;flex-direction:column;gap:0;">';
       html += '<button data-id="' + d.id + '" style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border:none;background:none;width:100%;text-align:left;">';
       html += '<div class="doc-icon">' + d.icon + '</div>';
@@ -837,9 +843,12 @@ function section(title, docs) {
       html += '<div class="doc-place">' + d.place + (d.city ? ' · ' + d.city : '') + '</div></div>';
       html += '<div class="doc-slots ' + slotClass + '">' + slotLabel + '</div>';
       html += '</button>';
+      html += '<div style="display:flex;gap:0;padding:0 14px 8px 50px;">';
       if (d.tel) {
-        html += '<a href="tel:' + d.tel + '" style="display:flex;align-items:center;gap:6px;padding:5px 14px 9px 50px;font-size:.7rem;color:var(--teal);text-decoration:none;">📞 ' + d.tel + '</a>';
+        html += '<a href="tel:' + d.tel + '" style="flex:1;display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--teal);text-decoration:none;">📞 ' + d.tel + '</a>';
       }
+      html += '<a href="' + mapUrl + '" target="_blank" style="display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--amber);text-decoration:none;">📍 Map</a>';
+      html += '</div>';
       html += '</div>';
     });
   }
@@ -856,9 +865,19 @@ function selectDoc(id) {
   document.getElementById('sel-doc-name').textContent = d.name;
   document.getElementById('no-doc-msg').style.display = 'none';
   document.getElementById('slots-view').style.display = 'block';
+  document.getElementById('btn-back-home').style.display = 'inline-block';
   closeDrawer();
   renderSlots();
 }
+
+document.getElementById('btn-back-home').onclick = function() {
+  selDocId = null;
+  document.getElementById('search-hint').style.display = 'block';
+  document.getElementById('selected-doc').classList.remove('show');
+  document.getElementById('no-doc-msg').style.display = 'block';
+  document.getElementById('slots-view').style.display = 'none';
+  document.getElementById('btn-back-home').style.display = 'none';
+};
 
 // ══════════════════════════════════════
 //  DATE PILLS
