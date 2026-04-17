@@ -320,13 +320,13 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
         <div id="day-modal-list"></div>
         <!-- BROADCAST MESSAGE SECTION -->
         <div id="broadcast-section" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
-          <div style="font-size:.76rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📢 Broadcast Message to All Reps</div>
+          <div style="font-size:.76rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📢 Broadcast Cancellation to All Reps</div>
           <div class="fg" style="margin-bottom:10px;">
             <label style="font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Reason for cancellation / message</label>
             <textarea id="broadcast-msg" rows="3" style="width:100%;padding:9px 11px;border:1.5px solid var(--border2);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--slate);background:var(--cream);outline:none;resize:vertical;" placeholder="e.g. Dr. unavailable due to emergency — all appointments for this day cancelled."></textarea>
           </div>
-          <div class="fg" style="margin-bottom:12px;">
-            <label style="font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Apply to</label>
+          <div class="fg" style="margin-bottom:10px;">
+            <label style="font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Cancel appointments for</label>
             <select id="broadcast-scope" style="width:100%;padding:8px 11px;border:1.5px solid var(--border2);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--slate);background:var(--cream);outline:none;">
               <option value="day">This day only</option>
               <option value="week">Next 7 days</option>
@@ -334,7 +334,35 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
               <option value="month">Next 30 days</option>
             </select>
           </div>
-          <button id="btn-broadcast" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--amber),#f59e0b);border:none;border-radius:9px;color:#fff;font-family:'Syne',sans-serif;font-size:.86rem;font-weight:700;cursor:pointer;">📢 Send Broadcast to All Reps</button>
+          <!-- RESCHEDULE SECTION -->
+          <div style="background:var(--ob);border:1px solid #a7f3d0;border-radius:9px;padding:12px;margin-bottom:12px;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--open);margin-bottom:8px;">📅 Offer Rescheduled Slot (Optional)</div>
+            <div style="font-size:.7rem;color:var(--muted);margin-bottom:8px;">Create a new open slot that all affected reps can rebook into.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div>
+                <label style="font-size:.65rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:3px;">New Date</label>
+                <input type="date" id="reschedule-date" style="width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--slate);background:#fff;outline:none;">
+              </div>
+              <div>
+                <label style="font-size:.65rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:3px;">New Time</label>
+                <input type="time" id="reschedule-time" style="width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--slate);background:#fff;outline:none;">
+              </div>
+              <div>
+                <label style="font-size:.65rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:3px;">Duration</label>
+                <select id="reschedule-dur" style="width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--slate);background:#fff;outline:none;">
+                  <option value="15">15 min</option>
+                  <option value="20">20 min</option>
+                  <option value="30" selected>30 min</option>
+                  <option value="45">45 min</option>
+                  <option value="60">60 min</option>
+                </select>
+              </div>
+            </div>
+            <div style="font-size:.68rem;color:var(--muted);">
+              💡 Leave date/time empty to cancel without offering a new slot.
+            </div>
+          </div>
+          <button id="btn-broadcast" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--amber),#f59e0b);border:none;border-radius:9px;color:#fff;font-family:'Syne',sans-serif;font-size:.86rem;font-weight:700;cursor:pointer;">📢 Cancel & Notify All Reps</button>
         </div>
         <div class="modal-acts" style="margin-top:14px;display:flex;gap:8px;">
           <button class="btn-mok" id="day-modal-broadcast-toggle" style="flex:1;">📢 Broadcast</button>
@@ -858,24 +886,82 @@ document.getElementById("day-modal-broadcast-toggle").onclick=function(){
 document.getElementById("btn-broadcast").onclick=function(){
   var msg=document.getElementById("broadcast-msg").value.trim();
   var scope=document.getElementById("broadcast-scope").value;
-  if(!msg){toast("Please enter a message to broadcast","warn");return;}
-  var days=scope==="day"?1:scope==="week"?7:scope==="2weeks"?14:30;
+  var reschedDate=document.getElementById("reschedule-date").value;
+  var reschedTime=document.getElementById("reschedule-time").value;
+  var reschedDur=parseInt(document.getElementById("reschedule-dur").value);
+  if(!msg){toast("Please enter a reason/message","warn");return;}
+  var numDays=scope==="day"?1:scope==="week"?7:scope==="2weeks"?14:30;
   var startDate=new Date(currentDayIso+"T00:00:00");
   var endDate=new Date(startDate);
-  endDate.setDate(endDate.getDate()+days-1);
-  var repsSent={};
+  endDate.setDate(endDate.getDate()+numDays-1);
+
+  // Find all booked/pending slots in range for this doctor
+  var affected=SLOTS.filter(function(s){
+    if(s.doctorId!==curUser.uid)return false;
+    if(!s.repUid)return false;
+    var sd=new Date(s.date+"T00:00:00");
+    return sd>=startDate&&sd<=endDate&&(s.status==="booked"||s.status==="pending");
+  });
+
+  // Build reschedule notice
+  var reschedNotice="";
+  if(reschedDate&&reschedTime){
+    var rDt=new Date(reschedDate+"T00:00:00");
+    var rMo=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][rDt.getMonth()];
+    reschedNotice=" A new slot on "+rDt.getDate()+" "+rMo+" at "+reschedTime+" has been opened for you to rebook.";
+  }
+
   var count=0;
-  SLOTS.forEach(function(s){
-    if(!s.repUid)return;
-    var slotDate=new Date(s.date+"T00:00:00");
-    if(slotDate>=startDate&&slotDate<=endDate&&!repsSent[s.repUid]){
+  var repsSent={};
+
+  // Cancel each affected slot and notify the rep
+  affected.forEach(function(s){
+    // Cancel the slot
+    db.collection("slots").doc(s.id).update({
+      status:"open",rep:null,repUid:null,co:null,prod:null,tel:null,reason:null
+    });
+    // Notify rep (once per rep)
+    if(!repsSent[s.repUid]){
       repsSent[s.repUid]=true;
-      db.collection("notifications").add({repUid:s.repUid,msg:"📢 BROADCAST from "+docProf.name+": "+msg,type:"warn",time:nowT(),unread:true,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      db.collection("notifications").add({
+        repUid:s.repUid,
+        msg:"❌ CANCELLED by "+docProf.name+": "+msg+reschedNotice,
+        type:"err",time:nowT(),unread:true,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
       count++;
     }
   });
-  db.collection("notifications").add({doctorId:curUser.uid,msg:"📢 BROADCAST SENT ("+days+" day"+(days>1?"s":"")+", "+count+" rep"+(count!==1?"s":"")+"): "+msg,type:"info",time:nowT(),unread:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-  toast("📢 Broadcast sent to "+count+" rep"+(count!==1?"s":""),"ok");
+
+  // Create one new open reschedule slot if date+time provided
+  if(reschedDate&&reschedTime){
+    db.collection("slots").add({
+      doctorId:curUser.uid,
+      date:reschedDate,
+      time:reschedTime,
+      dur:reschedDur,
+      status:"open",
+      note:"🔄 Rescheduled slot — available for rebooking",
+      rep:null,repUid:null,co:null,prod:null,tel:null,reason:null,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function(){
+      toast("📅 New reschedule slot created for "+reschedDate+" at "+reschedTime,"ok");
+    });
+  }
+
+  // Log broadcast on doctor side
+  db.collection("notifications").add({
+    doctorId:curUser.uid,
+    msg:"📢 BROADCAST: Cancelled "+affected.length+" slot"+(affected.length!==1?"s":"")+" ("+numDays+" day"+(numDays>1?"s":"")+"). Notified "+count+" rep"+(count!==1?"s":"")+". Reason: "+msg+(reschedDate&&reschedTime?" | New slot: "+reschedDate+" "+reschedTime:""),
+    type:"warn",time:nowT(),unread:false,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  if(count===0){
+    toast("No booked or pending slots found in this period","warn");
+  } else {
+    toast("📢 "+affected.length+" slot"+(affected.length!==1?"s":"")+" cancelled. "+count+" rep"+(count!==1?"s":"")+" notified.","ok");
+  }
   document.getElementById("day-modal").style.display="none";
 };
 
