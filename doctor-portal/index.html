@@ -740,24 +740,26 @@ document.getElementById("day-modal-close").onclick=function(){document.getElemen
 function renderCalendar(){
   var hdrs=document.getElementById("cal-hdrs");
   var grid=document.getElementById("cal-grid");
-  var days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  hdrs.innerHTML=days.map(function(d){return'<div class="cal-dh">'+d+"</div>";}).join("");
+  var dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  hdrs.innerHTML=dayNames.map(function(d){return'<div class="cal-dh">'+d+"</div>";}).join("");
 
-  // Show full month based on calOffset (months from today)
+  // Current month + calOffset
   var now=new Date();
-  var viewDate=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
-  var yr=viewDate.getFullYear();
-  var mo=viewDate.getMonth();
+  var yr=now.getFullYear();
+  var mo=now.getMonth()+calOffset;
+  // Normalize month overflow
+  while(mo>11){mo-=12;yr++;}
+  while(mo<0){mo+=12;yr--;}
+
   var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
   document.getElementById("cal-label").textContent=months[mo]+" "+yr;
 
-  // First day of month and total days
-  var firstDay=new Date(yr,mo,1).getDay(); // 0=Sun
+  var firstDay=new Date(yr,mo,1).getDay();
   var daysInMonth=new Date(yr,mo+1,0).getDate();
 
   grid.innerHTML="";
 
-  // Empty cells before first day
+  // Empty cells before first day of month
   for(var e=0;e<firstDay;e++){
     var empty=document.createElement("div");
     empty.className="cal-cell";
@@ -768,12 +770,15 @@ function renderCalendar(){
 
   // Day cells
   for(var day=1;day<=daysInMonth;day++){
-    var d=new Date(yr,mo,day);
-    var iso=d.toISOString().split("T")[0];
+    var dt=new Date(yr,mo,day);
+    // Use local date to avoid timezone offset issues
+    var mm=String(mo+1).padStart(2,"0");
+    var dd=String(day).padStart(2,"0");
+    var iso=yr+"-"+mm+"-"+dd;
     var ds=SLOTS.filter(function(s){return s.date===iso;});
     var cell=document.createElement("div");
-    var hasOpen=daySlots.some(function(s){return s.status==="open";});
-    var hasBooked=daySlots.some(function(s){return s.status==="booked";});
+    var hasOpen=ds.some(function(s){return s.status==="open";});
+    var hasBooked=ds.some(function(s){return s.status==="booked";});
     cell.className="cal-cell"+(iso===TODAY?" today":"")+(hasOpen?" has-open":"")+(hasBooked?" has-booked":"");
     cell.style.cursor="pointer";
     var html='<div class="cal-date" style="font-weight:700;color:var(--navy);">'+day+"</div>";
@@ -781,15 +786,14 @@ function renderCalendar(){
       ds.slice(0,3).forEach(function(s){
         html+='<span class="cal-chip cc-'+s.status+'">'+s.time+(s.rep?" · "+s.rep.split(" ")[0]:"")+"</span>";
       });
-      if(ds.length>3)html+='<div style="font-size:.6rem;color:var(--muted);">+'+( ds.length-3)+" more</div>";
+      if(ds.length>3)html+='<div style="font-size:.6rem;color:var(--muted);">+'+(ds.length-3)+" more</div>";
     } else {
       html+='<div style="font-size:.6rem;color:var(--light);margin-top:2px;">—</div>';
     }
     cell.innerHTML=html;
-    // Click to open day detail
-    (function(isoDate,daySlots,dayNum){
-      cell.onclick=function(){openDayModal(isoDate,daySlots,dayNum,mo,yr);};
-    })(iso,ds,day);
+    (function(isoDate,daySlots,dayNum,calMo,calYr){
+      cell.onclick=function(){openDayModal(isoDate,daySlots,dayNum,calMo,calYr);};
+    })(iso,ds,day,mo,yr);
     grid.appendChild(cell);
   }
 }
