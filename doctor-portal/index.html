@@ -136,6 +136,8 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
 .cal-dh{font-size:.7rem;font-weight:600;color:var(--muted);text-align:center;padding:7px 0;text-transform:uppercase;}
 .cal-cell{background:#fff;border:1px solid var(--border);border-radius:9px;padding:8px;min-height:80px;}
 .cal-cell.today{border-color:var(--teal);background:var(--txl);}
+.cal-cell.has-open{border-color:rgba(5,150,105,.4);}
+.cal-cell.has-booked{border-color:rgba(37,99,235,.4);}
 .cal-date{font-family:"Syne",sans-serif;font-size:.76rem;font-weight:700;color:var(--navy);margin-bottom:4px;}
 .cal-chip{font-size:.65rem;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cc-open{background:var(--ob);color:var(--open);}
@@ -312,11 +314,32 @@ tbody td{padding:11px 14px;font-size:.8rem;color:var(--slate);vertical-align:mid
     </div>
     <!-- DAY DETAIL MODAL -->
     <div class="modal-bg" id="day-modal" style="display:none;align-items:center;justify-content:center;">
-      <div class="modal-box" style="max-width:480px;max-height:80vh;overflow-y:auto;">
+      <div class="modal-box" style="max-width:520px;max-height:85vh;overflow-y:auto;">
         <h3 id="day-modal-title">Appointments</h3>
         <p id="day-modal-date" style="font-size:.78rem;color:var(--muted);margin-bottom:14px;"></p>
         <div id="day-modal-list"></div>
-        <div class="modal-acts" style="margin-top:14px;"><button class="btn-mok" id="day-modal-close" style="width:100%;text-align:center;">Close</button></div>
+        <!-- BROADCAST MESSAGE SECTION -->
+        <div id="broadcast-section" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+          <div style="font-size:.76rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📢 Broadcast Message to All Reps</div>
+          <div class="fg" style="margin-bottom:10px;">
+            <label style="font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Reason for cancellation / message</label>
+            <textarea id="broadcast-msg" rows="3" style="width:100%;padding:9px 11px;border:1.5px solid var(--border2);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--slate);background:var(--cream);outline:none;resize:vertical;" placeholder="e.g. Dr. unavailable due to emergency — all appointments for this day cancelled."></textarea>
+          </div>
+          <div class="fg" style="margin-bottom:12px;">
+            <label style="font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Apply to</label>
+            <select id="broadcast-scope" style="width:100%;padding:8px 11px;border:1.5px solid var(--border2);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--slate);background:var(--cream);outline:none;">
+              <option value="day">This day only</option>
+              <option value="week">Next 7 days</option>
+              <option value="2weeks">Next 14 days</option>
+              <option value="month">Next 30 days</option>
+            </select>
+          </div>
+          <button id="btn-broadcast" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--amber),#f59e0b);border:none;border-radius:9px;color:#fff;font-family:'Syne',sans-serif;font-size:.86rem;font-weight:700;cursor:pointer;">📢 Send Broadcast to All Reps</button>
+        </div>
+        <div class="modal-acts" style="margin-top:14px;display:flex;gap:8px;">
+          <button class="btn-mok" id="day-modal-broadcast-toggle" style="flex:1;">📢 Broadcast</button>
+          <button class="btn-mok" id="day-modal-close" style="flex:1;">Close</button>
+        </div>
       </div>
     </div>
     <div class="page" id="page-notif"><div class="panel"><div id="notif-list"></div></div></div>
@@ -749,7 +772,9 @@ function renderCalendar(){
     var iso=d.toISOString().split("T")[0];
     var ds=SLOTS.filter(function(s){return s.date===iso;});
     var cell=document.createElement("div");
-    cell.className="cal-cell"+(iso===TODAY?" today":"");
+    var hasOpen=daySlots.some(function(s){return s.status==="open";});
+    var hasBooked=daySlots.some(function(s){return s.status==="booked";});
+    cell.className="cal-cell"+(iso===TODAY?" today":"")+(hasOpen?" has-open":"")+(hasBooked?" has-booked":"");
     cell.style.cursor="pointer";
     var html='<div class="cal-date" style="font-weight:700;color:var(--navy);">'+day+"</div>";
     if(ds.length){
@@ -769,29 +794,86 @@ function renderCalendar(){
   }
 }
 
+var currentDayIso="";
 function openDayModal(iso,slots,day,mo,yr){
   var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
   var days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   var d=new Date(yr,mo,day);
+  currentDayIso=iso;
   document.getElementById("day-modal-title").textContent=days[d.getDay()]+" "+day+" "+months[mo]+" "+yr;
   document.getElementById("day-modal-date").textContent=slots.length+" slot"+(slots.length!==1?"s":"")+" scheduled";
+  document.getElementById("broadcast-section").style.display="none";
+  document.getElementById("broadcast-msg").value="";
   var el=document.getElementById("day-modal-list");
   if(!slots.length){
     el.innerHTML='<div style="text-align:center;padding:20px;color:var(--light);font-size:.84rem;">No slots on this day.</div>';
   } else {
     el.innerHTML=slots.map(function(s){
       var stCls=s.status==="open"?"b-open":s.status==="booked"?"b-conf":"b-pend";
-      var stLabel=s.status==="open"?"Open":s.status==="booked"?"Confirmed":"Pending";
-      return '<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">'+
+      var stLabel=s.status==="open"?"🟢 Open":s.status==="booked"?"✅ Confirmed":"⏳ Pending";
+      var cancelBtn=s.status==="booked"
+        ?'<button data-sid="'+s.id+'" class="day-cancel-btn" style="padding:3px 9px;background:var(--rb);color:var(--red);border:1px solid #fca5a5;border-radius:6px;font-size:.7rem;font-weight:600;cursor:pointer;white-space:nowrap;">Cancel</button>'
+        :"";
+      return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">'+
+        '<div style="display:flex;align-items:center;gap:10px;">'+
         '<div style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:700;min-width:44px;color:var(--navy);">'+s.time+'</div>'+
         '<div style="flex:1;"><div style="font-size:.82rem;font-weight:600;">'+(s.rep||"Open slot")+'</div>'+
         '<div style="font-size:.72rem;color:var(--muted);">'+(s.co||"")+(s.reason?" · "+s.reason:"")+'</div></div>'+
-        '<span class="badge '+stCls+'">'+stLabel+'</span>'+
-        '</div>';
+        '<span class="badge '+stCls+'">'+stLabel+'</span>'+cancelBtn+
+        '</div></div>';
     }).join("");
+    // Wire cancel buttons
+    el.querySelectorAll(".day-cancel-btn").forEach(function(btn){
+      btn.onclick=function(){
+        var reason=prompt("Reason for cancellation (will be sent to rep):");
+        if(!reason)return;
+        var sid=this.dataset.sid;
+        var s=SLOTS.find(function(x){return x.id===sid;});
+        if(!s)return;
+        db.collection("slots").doc(sid).update({status:"open",rep:null,repUid:null,co:null,prod:null,tel:null,reason:null}).then(function(){
+          if(s.repUid){
+            db.collection("notifications").add({repUid:s.repUid,msg:"❌ CANCELLED: Your "+s.time+" appointment with "+docProf.name+" on "+fmtDate(s.date)+" was cancelled. Reason: "+reason,type:"err",time:nowT(),unread:true,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            db.collection("notifications").add({doctorId:curUser.uid,msg:"CANCELLED: Booking with "+s.rep+" at "+s.time+" on "+fmtDate(s.date)+". Reason: "+reason,type:"warn",time:nowT(),unread:true,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+          }
+          toast("Cancelled — rep notified with reason","warn");
+          document.getElementById("day-modal").style.display="none";
+        });
+      };
+    });
   }
   document.getElementById("day-modal").style.display="flex";
 }
+
+// Broadcast toggle button
+document.getElementById("day-modal-broadcast-toggle").onclick=function(){
+  var sec=document.getElementById("broadcast-section");
+  sec.style.display=sec.style.display==="none"?"block":"none";
+};
+
+// Broadcast send
+document.getElementById("btn-broadcast").onclick=function(){
+  var msg=document.getElementById("broadcast-msg").value.trim();
+  var scope=document.getElementById("broadcast-scope").value;
+  if(!msg){toast("Please enter a message to broadcast","warn");return;}
+  var days=scope==="day"?1:scope==="week"?7:scope==="2weeks"?14:30;
+  var startDate=new Date(currentDayIso+"T00:00:00");
+  var endDate=new Date(startDate);
+  endDate.setDate(endDate.getDate()+days-1);
+  var repsSent={};
+  var count=0;
+  SLOTS.forEach(function(s){
+    if(!s.repUid)return;
+    var slotDate=new Date(s.date+"T00:00:00");
+    if(slotDate>=startDate&&slotDate<=endDate&&!repsSent[s.repUid]){
+      repsSent[s.repUid]=true;
+      db.collection("notifications").add({repUid:s.repUid,msg:"📢 BROADCAST from "+docProf.name+": "+msg,type:"warn",time:nowT(),unread:true,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      count++;
+    }
+  });
+  db.collection("notifications").add({doctorId:curUser.uid,msg:"📢 BROADCAST SENT ("+days+" day"+(days>1?"s":"")+", "+count+" rep"+(count!==1?"s":"")+"): "+msg,type:"info",time:nowT(),unread:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  toast("📢 Broadcast sent to "+count+" rep"+(count!==1?"s":""),"ok");
+  document.getElementById("day-modal").style.display="none";
+};
 
 function renderNotifs(){
   NOTIFS.forEach(function(n){
